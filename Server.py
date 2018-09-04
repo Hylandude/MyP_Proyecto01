@@ -1,5 +1,6 @@
 import asyncio
 import sys
+from MessageEvents import MessageEvents
 
 #Get host and port from command line arguments
 args = sys.argv
@@ -8,22 +9,36 @@ if len(args) != 1:
     print("Usage: $python3 server.py <port>");
     sys.exit(1)
 
+def validateEvent(eventType):
+    try:
+        event = str(MessageEvents[eventType])
+        eventType = eventType+"//"
+        print ("Validating: "+eventType+"---"+event)
+        return eventType == event
+    except KeyError:
+        return False
+
 #reads data from the input socket and sends it back
 async def server_main(reader, writer):
-    clients = []
+    clients = {}
     while True:
         data = await reader.read(100)
         message = data.decode()
+
         addr = writer.get_extra_info('peername')
         print("Received %r from %r" % (message, addr))
+        clients[addr[0]+str(addr[1])] = writer
+        eventType = message.split("//")[0]
+        if validateEvent(eventType):
+            print("Valid EVENT")
+            writer.write(data)
+            await writer.drain()
+        else:
+            print("invalid event")
+            writer.write("Mensaje invalido".encode())
+            await writer.drain()
 
-        close_sequence = message.split("_")[0]
-
-        print("Send: %r" % message)
-        writer.write(data)
-        await writer.drain()
-
-        if close_sequence == "close":
+        if eventType == "CLOSE":
             print("Close the client socket")
             writer.close()
 

@@ -1,6 +1,6 @@
 from enum import Enum
 
-class Events(Enum):
+class MessageEvents(Enum):
     HANDSHAKE = 1
     MESSAGE = 2
     FILE = 3
