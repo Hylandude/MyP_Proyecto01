@@ -19,7 +19,6 @@ async def tcp_echo_client(loop):
     close_sequence = "open"
     while close_sequence != "close":
         message = input("Escribe tu mensaje:\n")
-        print('Sending: %r' % message)
         writer.write(message.encode())
 
         data = await reader.read(100)

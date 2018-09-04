@@ -2,6 +2,8 @@ import asyncio
 import sys
 from MessageEvents import MessageEvents
 
+clients = {}
+
 #Get host and port from command line arguments
 args = sys.argv
 args = args[1:len(args)]
@@ -18,9 +20,15 @@ def validateEvent(eventType):
     except KeyError:
         return False
 
+def sendToAll(clients, data):
+    print(clients)
+    for client, writer in clients.items():
+        print("Sending: "+data.decode()+" to: "+client);
+        writer.write(data)
+        writer.drain()
+
 #reads data from the input socket and sends it back
 async def server_main(reader, writer):
-    clients = {}
     while True:
         data = await reader.read(100)
         message = data.decode()
@@ -30,9 +38,7 @@ async def server_main(reader, writer):
         clients[addr[0]+str(addr[1])] = writer
         eventType = message.split("//")[0]
         if validateEvent(eventType):
-            print("Valid EVENT")
-            writer.write(data)
-            await writer.drain()
+            sendToAll(clients, data)
         else:
             print("invalid event")
             writer.write("Mensaje invalido".encode())
