@@ -42,11 +42,11 @@ class Client(asyncio.Protocol):
             message = "MESSAGE//"+data
             self.transport.write(message.encode())
 
-    def initializeOutput(self, loop):
+    async def initializeOutput(self, loop):
         self.output = self.stdoutput
         self.output("Te has conectado a: "+str(self.sockname))
         while True:
-            msg = loop.run_in_executor(None, input, "{}: ".format(self.username))
+            msg = await loop.run_in_executor(None, input, "{}: ".format(self.username))
             self.send(msg)
 
     def validateMessage(self, message):
