@@ -12,6 +12,7 @@ if len(args) != 1:
 class Server(asyncio.Protocol):
 
     def __init__(self, connections, users):
+        print("CALL SERVER CONSTRUCTOR")
         self.connections = connections
         self.users = users
         self.peername = ""
@@ -22,16 +23,19 @@ class Server(asyncio.Protocol):
         self.connections += [transport]
         self.peername = transport.get_extra_info('sockname')
         self.transport = transport
+        print("STABLISHED CONNECTION :"+str(transport))
 
     def connection_lost(self, exc):
+        print("LOST CONNECTION")
         self.connections.remove(self.transport)
-        print("\n********\n"+exc+"\n**********\n")
+        print("\n********\n"+str(exc)+"\n**********\n")
         err = self.peername+" se ha desconectado"
         message = self.messageMaker(err, "[Servidor]", MessageEvents.MESSAGE)
         print(err)
         self.sendToAll(message)
 
     def data_received(self, data):
+        print("DATA RECEIVED")
         if data:
             incomingData = data.decode()
             incomingData = incomingData.split("//")
@@ -68,7 +72,9 @@ class Server(asyncio.Protocol):
             return False
 
     def sendToAll(self, message):
+        print("SENDING TO ALL")
         for connection in self.connections:
+            print(str(connection))
             connection.write(message)
 
 if __name__ == "__main__":

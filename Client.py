@@ -30,12 +30,12 @@ class Client(asyncio.Protocol):
         self.loop.stop()
 
     def data_received(self, data):
-        print("DATA Received")
+        print("DATA RECEIVED")
         while not hasattr(self, "output"):
             pass
         if data:
             message = data.decode()
-            print("MESSAGE: "+message+"---")
+            self.validateMessage(message)
 
     def send(self, data):
         if data:
@@ -43,10 +43,24 @@ class Client(asyncio.Protocol):
             self.transport.write(message.encode())
 
     def initializeOutput(self, loop):
-        print("Connected to {0}:{1}\n".format(*self.sockname))
+        self.output = self.stdoutput
+        self.output("Te has conectado a: "+str(self.sockname))
         while True:
-            msg = input("Escribe tu mensaje\n")
+            msg = loop.run_in_executor(None, input, "{}: ".format(self.username))
             self.send(msg)
+
+    def validateMessage(self, message):
+        try:
+            incomingData = message.split("//")
+            eventReceived = str(incomingData[0])
+            stringReceived = str(incomingData[1])
+            if eventReceived == "MESSAGE":
+                self.output(stringReceived)
+        except KeyError:
+            self.output("Se ha recivido un mensaje invalido")
+
+    def stdoutput(self, data):
+        stdout.write(data+ '\n')
 
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
@@ -56,7 +70,3 @@ if __name__ == "__main__":
     asyncio.async(userClient.initializeOutput(loop))
     loop.run_forever()
     loop.close()
-
-
-
-loop.close()
