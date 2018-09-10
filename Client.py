@@ -5,12 +5,14 @@ from sys import stdout
 #Get host and port from command line arguments
 args = sys.argv
 args = args[1:len(args)]
-if len(args) != 2:
-    print("Usage: $python3 client.py <host> <port>");
+if len(args) != 3:
+    print("Usage: $python3 client.py <host> <port> <username>");
     sys.exit(1)
 
 class Client(asyncio.Protocol):
-    def __init__(self, loop, **kwargs):
+
+    def __init__(self, loop, username):
+        self.username = username
         self.is_open = False
         self.loop = loop
 
@@ -19,37 +21,36 @@ class Client(asyncio.Protocol):
         self.sockname = transport.get_extra_info("sockname")
         self.transport = transport
         self.is_open = True
+        self.transport.write(("HANDSHAKE//"+self.username).encode())
 
-    def connection_lost(self, exc):
-         self.is_open = False
-         self.loop.stop()
+    def connection_lost(self, exception):
+        print("CONNECTION LOST")
+        print(exception)
+        self.is_open = False
+        self.loop.stop()
 
     def data_received(self, data):
         print("DATA Received")
-        while not hasattr(self, "output"): #Wait until output is established
+        while not hasattr(self, "output"):
             pass
         if data:
             message = data.decode()
             print("MESSAGE: "+message+"---")
-            self.output(message+"\n")
 
     def send(self, data):
         if data:
-            self.transport.write(data.encode())
+            message = "MESSAGE//"+data
+            self.transport.write(message.encode())
 
     def initializeOutput(self, loop):
-        self.output = self.stdoutput
-        self.output("Connected to {0}:{1}\n".format(*self.sockname))
+        print("Connected to {0}:{1}\n".format(*self.sockname))
         while True:
             msg = input("Escribe tu mensaje\n")
             self.send(msg)
 
-    def stdoutput(self, data):
-        stdout.write(data.strip() + '\n')
-
 if __name__ == "__main__":
     loop = asyncio.get_event_loop()
-    userClient = Client(loop)
+    userClient = Client(loop, args[2])
     coro = loop.create_connection(lambda: userClient, args[0], args[1])
     server = loop.run_until_complete(coro)
     asyncio.async(userClient.initializeOutput(loop))
