@@ -5,11 +5,13 @@ class MessageEvents(Enum):
     MESSAGE = 2
     FILE = 3
     CLOSE = 4
+    SERVER = 5
 
     def __str__(self):
         return{
             'HANDSHAKE' : "HANDSHAKE//",
             'MESSAGE' : "MESSAGE//",
             'FILE' : "FILE//",
-            'CLOSE' : "CLOSE//"
+            'CLOSE' : "CLOSE//",
+            'SERVER' : "SERVER//"
         }[self.name]

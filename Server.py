@@ -2,8 +2,6 @@ import asyncio
 import sys
 from MessageEvents import MessageEvents
 
-clients = {}
-
 #Get host and port from command line arguments
 args = sys.argv
 args = args[1:len(args)]
@@ -11,60 +9,81 @@ if len(args) != 1:
     print("Usage: $python3 server.py <port>");
     sys.exit(1)
 
-def validateEvent(eventType):
-    try:
-        event = str(MessageEvents[eventType])
-        eventType = eventType+"//"
-        print ("Validating: "+eventType+"---"+event)
-        return eventType == event
-    except KeyError:
-        return False
+class Server(asyncio.Protocol):
 
-def sendToAll(clients, data):
-    print(clients)
-    for client, writer in clients.items():
-        print("Sending: "+data.decode()+" to: "+client);
-        writer.write(data)
-        writer.drain()
+    def __init__(self, connections, users):
+        self.connections = connections
+        self.users = users
+        self.peername = ""
+        self.user = None
+        self.invalidCount = 0
 
-#reads data from the input socket and sends it back
-async def server_main(reader, writer):
-    while True:
-        data = await reader.read(100)
-        message = data.decode()
+    def connection_made(self, transport):
+        self.connections += [transport]
+        self.peername = transport.get_extra_info('sockname')
+        self.transport = transport
 
-        addr = writer.get_extra_info('peername')
-        print("Received %r from %r" % (message, addr))
-        clients[addr[0]+str(addr[1])] = writer
-        eventType = message.split("//")[0]
-        if validateEvent(eventType):
-            sendToAll(clients, data)
+    def connection_lost(self, exc):
+        self.connections.remove(self.transport)
+        print("\n********\n"+exc+"\n**********\n")
+        err = self.peername+" se ha desconectado"
+        message = self.messageMaker(err, "[Servidor]", MessageEvents.MESSAGE)
+        print(err)
+        self.sendToAll(message)
+
+    def data_received(self, data):
+        if data:
+            incomingData = data.decode()
+            incomingData = incomingData.split("//")
+            eventReceived = str(incomingData[0])
+            stringReceived = str(incomingData[1])
+            if self.validateEvent(eventReceived):
+                if eventReceived == "HANDSHAKE":
+                    self.user = stringReceived
+                    print(self.user+" se ha conectado")
+                    msg = self.messageMaker("Bienvenido: "+self.user, "[Server]", MessageEvents.SERVER)
+                    self.sendToAll(msg)
+                elif eventReceived == "MESSAGE":
+                    print("received: **"+stringReceived+"** From: "+self.user)
+                    msg = self.messageMaker(stringReceived, self.user, MessageEvents.MESSAGE)
+                    self.sendToAll(msg)
+            else:
+                msg = self.messageMaker("Mensaje invalido","[Servidor]", MessageEvents.SERVER)
+                self.invalidCount += 1
+                self.transport.write(msg)
         else:
-            print("invalid event")
-            writer.write("Mensaje invalido".encode())
-            await writer.drain()
+            msg = self.messageMaker("Mensaje vacio no permitido","[Servidor]", MessageEvents.SERVER)
+            self.invalidCount += 1
+            self.transport.write(msg)
 
-        if eventType == "CLOSE":
-            print("Close the client socket")
-            writer.close()
+    def messageMaker(self, message, author, event):
+        return (str(event)+author+": "+message).encode()
 
-#start server
-try:
+    def validateEvent(self, eventType):
+        try:
+            event = str(MessageEvents[eventType])
+            eventType = eventType+"//"
+            return eventType == event
+        except KeyError:
+            return False
+
+    def sendToAll(self, message):
+        for connection in self.connections:
+            connection.write(message)
+
+if __name__ == "__main__":
+    connections = []
+    users = {}
     loop = asyncio.get_event_loop()
-    coro = asyncio.start_server(server_main, "127.0.0.1", args[0], loop=loop)
+    coro = loop.create_server(lambda: Server(connections, users), "127.0.0.1", args[0])
     server = loop.run_until_complete(coro)
-except Exception as ex:
-    print("No se pudo iniciar el servidor, verifica que el puerto sea un numero entero")
-    sys.exit(1)
 
-# Serve requests until Ctrl+C is pressed
-print('Serving on {}'.format(server.sockets[0].getsockname()))
-try:
-    loop.run_forever()
-except KeyboardInterrupt:
-    pass
+    print('Serving on {}:{}'.format(*server.sockets[0].getsockname()))
+    try:
+        loop.run_forever()
+    except KeyboardInterrupt:
+        pass
 
-# Close the server
-server.close()
-loop.run_until_complete(server.wait_closed())
-loop.close()
+    server.close()
+    loop.run_until_complete(server.wait_closed())
+    loop.close()
