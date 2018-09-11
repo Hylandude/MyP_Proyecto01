@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from MessageEvents import MessageEvents
+from UserStatus import UserStatus
 
 #Get host and port from command line arguments
 args = sys.argv
