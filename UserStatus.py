@@ -7,7 +7,7 @@ class MessageEvents(Enum):
 
     def __str__(self):
         return{
-            'ACTIVE' : "HANDSHAKE//",
-            'AWAY' : "MESSAGE//",
-            'BUSY' : "FILE//"
+            'ACTIVE' : "ACTIVE//",
+            'AWAY' : "AWAY//",
+            'BUSY' : "BUSY//"
         }[self.name]
