@@ -1,6 +1,8 @@
 import sys
 import asyncio
 import unittest
+from Client import Client
+from Server import Server
 
 class TestServerMethods(unittest.TestCase):
 
@@ -10,23 +12,23 @@ class TestServerMethods(unittest.TestCase):
     def tearDown(self):
         print('Disconnecting...')
 
-    def testConnection(self):
+    def test_connection_made(self):
         print('Testing connection')
         self.assertEqual(True, False)
 
-    def testReceiveMessage(self):
+    def test_data_received(self):
         print('Testing message reception')
         self.assertEqual(True, False)
 
-    def testSendMessage(self):
+    def test_messageMaker(self):
         print('Testing message delivery')
         self.assertEqual(True, False)
 
-    def testSelectEvent(self):
+    def test_validateEvent(self):
         print('Testing event selection')
         self.assertEqual(True, False)
 
-    def testDisconection(self):
+    def test_sendToAll(self):
         print('Testing disconection')
         self.assertEqual(True, False)
 

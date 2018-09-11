@@ -17,7 +17,6 @@ class Client(asyncio.Protocol):
         self.loop = loop
 
     def connection_made(self, transport):
-        print("CONNECTION MADE")
         self.sockname = transport.get_extra_info("sockname")
         self.transport = transport
         self.is_open = True
@@ -25,12 +24,11 @@ class Client(asyncio.Protocol):
 
     def connection_lost(self, exception):
         print("CONNECTION LOST")
-        print(exception)
+        print(str(exception))
         self.is_open = False
         self.loop.stop()
 
     def data_received(self, data):
-        print("DATA RECEIVED")
         while not hasattr(self, "output"):
             pass
         if data:
@@ -46,7 +44,7 @@ class Client(asyncio.Protocol):
         self.output = self.stdoutput
         self.output("Te has conectado a: "+str(self.sockname))
         while True:
-            msg = await loop.run_in_executor(None, input, "{}: ".format(self.username))
+            msg = await loop.run_in_executor(None, input)
             self.send(msg)
 
     def validateMessage(self, message):
