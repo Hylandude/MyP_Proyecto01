@@ -1,17 +1,27 @@
 from enum import Enum
 
 class MessageEvents(Enum):
-    HANDSHAKE = 1
-    MESSAGE = 2
-    FILE = 3
-    CLOSE = 4
-    SERVER = 5
+    IDENTIFY = 1
+    STATUS = 2
+    USERS = 3
+    MESSAGE = 4
+    PUBLICMESSAGE = 5
+    CREATEROOM = 6
+    INVITE = 7
+    JOINROOM = 8
+    ROOMESSAGE = 9
+    DISCONNECT = 10
 
     def __str__(self):
         return{
-            'HANDSHAKE' : "HANDSHAKE//",
-            'MESSAGE' : "MESSAGE//",
-            'FILE' : "FILE//",
-            'CLOSE' : "CLOSE//",
-            'SERVER' : "SERVER//"
+            'IDENTIFY': "IDENTIFY//",
+            'STATUS': "STATUS//",
+            'USERS': "USERS//",
+            'MESSAGE': "MESSAGE//",
+            'PUBLICMESSAGE': "PUBLICMESSAGE//",
+            'CREATEROOM': "CREATEROOM//",
+            'INVITE': "INVITE//",
+            'JOINROOM': "JOINROOM//",
+            'ROOMESSAGE': "ROOMESSAGE//",
+            'DISCONNECT': "DISCONNECT//"
         }[self.name]
