@@ -17,7 +17,7 @@ class Server(asyncio.Protocol):
         self.connections = connections
         self.users = users
         self.peername = ""
-        self.user = None
+        self.user = ""
         self.invalidCount = 0
 
     def connection_made(self, transport):
@@ -39,25 +39,29 @@ class Server(asyncio.Protocol):
         print("DATA RECEIVED")
         if data:
             incomingData = data.decode()
+            print("received: "+incomingData+" \nFrom: "+self.user)
             incomingData = incomingData.split("//")
             eventReceived = str(incomingData[0])
             stringReceived = str(incomingData[1])
             if self.validateEvent(eventReceived):
-                if eventReceived == "HANDSHAKE":
+                if eventReceived == "IDENTIFY":
                     self.user = stringReceived
                     print(self.user+" se ha conectado")
-                    msg = self.messageMaker("Bienvenido: "+self.user, "[Server]", MessageEvents.SERVER)
+                    msg = self.messageMaker("Bienvenido: "+self.user, "[Server]", MessageEvents.MESSAGE)
                     self.sendToAll(msg)
                 elif eventReceived == "MESSAGE":
-                    print("received: **"+stringReceived+"** From: "+self.user)
-                    msg = self.messageMaker(stringReceived, self.user, MessageEvents.MESSAGE)
-                    self.sendToAll(msg)
+                    if self.user != "":
+                        msg = self.messageMaker(stringReceived, self.user, MessageEvents.MESSAGE)
+                        self.sendToAll(msg)
+                    else:
+                        msg = self.messageMaker("No puedes enviar mensajes hasta que te autentiques", "[Servidor]", MessageEvents.MESSAGE)
+                        self.transport.write(msg)
             else:
-                msg = self.messageMaker("Mensaje invalido","[Servidor]", MessageEvents.SERVER)
+                msg = self.messageMaker("Mensaje invalido","[Servidor]", MessageEvents.MESSAGE)
                 self.invalidCount += 1
                 self.transport.write(msg)
         else:
-            msg = self.messageMaker("Mensaje vacio no permitido","[Servidor]", MessageEvents.SERVER)
+            msg = self.messageMaker("Mensaje vacio no permitido","[Servidor]", MessageEvents.MESSAGE)
             self.invalidCount += 1
             self.transport.write(msg)
 
@@ -73,9 +77,7 @@ class Server(asyncio.Protocol):
             return False
 
     def sendToAll(self, message):
-        print("SENDING TO ALL")
         for connection in self.connections:
-            print(str(connection))
             connection.write(message)
 
 if __name__ == "__main__":

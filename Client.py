@@ -21,7 +21,7 @@ class Client(asyncio.Protocol):
         self.sockname = transport.get_extra_info("sockname")
         self.transport = transport
         self.is_open = True
-        self.transport.write(("HANDSHAKE//"+self.username).encode())
+        #self.transport.write(("HANDSHAKE//"+self.username).encode())
 
     def connection_lost(self, exception):
         print("CONNECTION LOST")
@@ -38,7 +38,8 @@ class Client(asyncio.Protocol):
 
     def send(self, data):
         if data:
-            message = "MESSAGE//"+data
+            #message = "MESSAGE//"+data
+            message = data
             self.transport.write(message.encode())
 
     async def initializeOutput(self, loop):

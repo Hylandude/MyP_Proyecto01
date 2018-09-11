@@ -1,6 +1,6 @@
 from enum import Enum
 
-class MessageEvents(Enum):
+class UserStatus(Enum):
     ACTIVE = 1
     AWAY = 2
     BUSY = 3
