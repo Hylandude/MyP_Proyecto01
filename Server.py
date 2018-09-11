@@ -2,6 +2,8 @@ import asyncio
 import sys
 from MessageEvents import MessageEvents
 from UserStatus import UserStatus
+from User import User
+from Room import Room
 
 #Get host and port from command line arguments
 args = sys.argv
@@ -12,19 +14,16 @@ if len(args) != 1:
 
 class Server(asyncio.Protocol):
 
-    def __init__(self, connections, users):
-        print("CALL SERVER CONSTRUCTOR")
-        self.connections = connections
+    def __init__(self, rooms, users):
+        self.rooms = rooms
         self.users = users
-        self.peername = ""
-        self.user = ""
-        self.invalidCount = 0
+        self.serving = None
 
     def connection_made(self, transport):
-        self.connections += [transport]
-        self.peername = transport.get_extra_info('sockname')
-        self.transport = transport
-        print("STABLISHED CONNECTION :"+str(transport))
+        newUser = User(transport)
+        self.users += [newUser]
+        self.serving = newUser
+        print("STABLISHED CONNECTION :"+str(transport.get_extra_info('sockname')))
 
     def connection_lost(self, exc):
         print("LOST CONNECTION")
@@ -36,34 +35,34 @@ class Server(asyncio.Protocol):
         self.sendToAll(message)
 
     def data_received(self, data):
-        print("DATA RECEIVED")
         if data:
             incomingData = data.decode()
-            print("received: "+incomingData+" \nFrom: "+self.user)
+            print("received: "+incomingData+" \nFrom: "+self.serving.name)
             incomingData = incomingData.split("//")
             eventReceived = str(incomingData[0])
             stringReceived = str(incomingData[1])
             if self.validateEvent(eventReceived):
                 if eventReceived == "IDENTIFY":
-                    self.user = stringReceived
-                    print(self.user+" se ha conectado")
-                    msg = self.messageMaker("Bienvenido: "+self.user, "[Server]", MessageEvents.MESSAGE)
+                    self.serving.setName(stringReceived)
+                    print(self.serving.name+" se ha conectado")
+                    msg = self.messageMaker("Bienvenido: "+self.serving.name, "[Server]", MessageEvents.MESSAGE)
                     self.sendToAll(msg)
                 elif eventReceived == "MESSAGE":
-                    if self.user != "":
-                        msg = self.messageMaker(stringReceived, self.user, MessageEvents.MESSAGE)
+                    if self.serving.name != "":
+                        msg = self.messageMaker(stringReceived, self.serving.name, MessageEvents.MESSAGE)
                         self.sendToAll(msg)
                     else:
                         msg = self.messageMaker("No puedes enviar mensajes hasta que te autentiques", "[Servidor]", MessageEvents.MESSAGE)
-                        self.transport.write(msg)
+                        self.serving.invalidCount += 1
+                        self.serving.transport.write(msg)
             else:
                 msg = self.messageMaker("Mensaje invalido","[Servidor]", MessageEvents.MESSAGE)
-                self.invalidCount += 1
-                self.transport.write(msg)
+                self.serving.invalidCount += 1
+                self.serving.transport.write(msg)
         else:
             msg = self.messageMaker("Mensaje vacio no permitido","[Servidor]", MessageEvents.MESSAGE)
-            self.invalidCount += 1
-            self.transport.write(msg)
+            self.serving.invalidCount += 1
+            self.serving.transport.write(msg)
 
     def messageMaker(self, message, author, event):
         return (str(event)+author+": "+message).encode()
@@ -77,14 +76,14 @@ class Server(asyncio.Protocol):
             return False
 
     def sendToAll(self, message):
-        for connection in self.connections:
-            connection.write(message)
+        for user in self.users:
+            user.transport.write(message)
 
 if __name__ == "__main__":
-    connections = []
-    users = {}
+    users = []
+    rooms = {}
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(lambda: Server(connections, users), "127.0.0.1", args[0])
+    coro = loop.create_server(lambda: Server(rooms, users), "127.0.0.1", args[0])
     server = loop.run_until_complete(coro)
 
     print('Serving on {}:{}'.format(*server.sockets[0].getsockname()))
