@@ -14,14 +14,28 @@ class MessageEvents(Enum):
 
     def __str__(self):
         return{
-            'IDENTIFY': "IDENTIFY//",
-            'STATUS': "STATUS//",
-            'USERS': "USERS//",
-            'MESSAGE': "MESSAGE//",
-            'PUBLICMESSAGE': "PUBLICMESSAGE//",
-            'CREATEROOM': "CREATEROOM//",
-            'INVITE': "INVITE//",
-            'JOINROOM': "JOINROOM//",
-            'ROOMESSAGE': "ROOMESSAGE//",
-            'DISCONNECT': "DISCONNECT//"
+            'IDENTIFY': "IDENTIFY ",
+            'STATUS': "STATUS ",
+            'USERS': "USERS ",
+            'MESSAGE': "MESSAGE ",
+            'PUBLICMESSAGE': "PUBLICMESSAGE ",
+            'CREATEROOM': "CREATEROOM ",
+            'INVITE': "INVITE ",
+            'JOINROOM': "JOINROOM ",
+            'ROOMESSAGE': "ROOMESSAGE ",
+            'DISCONNECT': "DISCONNECT "
         }[self.name]
+
+    def validList():
+        stringMessage = '''Sintaxis invalida, la sintaxis de los mensajes es:\n
+                        \t IDENTIFY nuevoNombre\n
+                        \t STATUS status\n
+                        \t USERS\n
+                        \t MESSAGE destinatario mensaje\n
+                        \t PUBLICMESSAGE mensaje\n
+                        \t CREATEROOM nombreSala\n
+                        \t INVITE nombreSala usuario1 usuario2...\n
+                        \t JOINROOM nombreSala\n
+                        \t ROOMESSAGE nombreSala mensaje\n
+                        \t DISCONNECT'''
+        return stringMessage

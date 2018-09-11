@@ -21,7 +21,6 @@ class Client(asyncio.Protocol):
         self.sockname = transport.get_extra_info("sockname")
         self.transport = transport
         self.is_open = True
-        #self.transport.write(("HANDSHAKE//"+self.username).encode())
 
     def connection_lost(self, exception):
         print("CONNECTION LOST")
@@ -38,7 +37,6 @@ class Client(asyncio.Protocol):
 
     def send(self, data):
         if data:
-            #message = "MESSAGE//"+data
             message = data
             self.transport.write(message.encode())
 
@@ -51,10 +49,10 @@ class Client(asyncio.Protocol):
 
     def validateMessage(self, message):
         try:
-            incomingData = message.split("//")
-            eventReceived = str(incomingData[0])
-            stringReceived = str(incomingData[1])
-            if eventReceived == "MESSAGE":
+            incomingData = message.split(" ")
+            eventReceived = incomingData[0]
+            stringReceived = message[len(eventReceived)+1:]
+            if eventReceived == "PUBLICMESSAGE" or eventReceived == "MESSAGE":
                 self.output(stringReceived)
         except KeyError:
             self.output("Se ha recivido un mensaje invalido")
