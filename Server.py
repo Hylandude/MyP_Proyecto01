@@ -9,7 +9,7 @@ from Room import Room
 args = sys.argv
 args = args[1:len(args)]
 if len(args) != 1:
-    print("Usage: $python3 server.py <port>");
+    print("Usage: $python3 Server.py <port>");
     sys.exit(1)
 
 class Server(asyncio.Protocol):
@@ -45,16 +45,33 @@ class Server(asyncio.Protocol):
                 if eventReceived == "IDENTIFY":
                     self.serving.setName(stringReceived)
                     print(self.serving.name+" se ha conectado")
-                    msg = self.messageMaker("Bienvenido: "+self.serving.name, "[Server]", MessageEvents.MESSAGE)
+                    msg = self.messageMaker("Bienvenido: "+self.serving.name, "[Servidor]", MessageEvents.MESSAGE)
                     self.sendToAll(msg)
-                elif eventReceived == "MESSAGE":
-                    if self.serving.name != "":
+                elif self.serving.name != "":
+                    if eventReceived == "STATUS":
+                        print ("STATUS EVENT RECEIVED");
+                    elif eventReceived == "USERS":
+                        print ("USERS EVENT RECEIVED");
+                    elif eventReceived == "MESSAGE":
+                        print ("MESSAGE EVENT RECEIVED");
+                    elif eventReceived == "PUBLICMESSAGE":
                         msg = self.messageMaker(stringReceived, self.serving.name, MessageEvents.MESSAGE)
                         self.sendToAll(msg)
-                    else:
-                        msg = self.messageMaker("No puedes enviar mensajes hasta que te autentiques", "[Servidor]", MessageEvents.MESSAGE)
-                        self.serving.invalidCount += 1
-                        self.serving.transport.write(msg)
+                    elif eventReceived == "CREATEROOM":
+                        print ("CREATEROOM EVENT RECEIVED");
+                    elif eventReceived == "INVITE":
+                        print ("INVITE EVENT RECEIVED");
+                    elif eventReceived == "JOINROOM":
+                        print ("JOINROOM EVENT RECEIVED");
+                    elif eventReceived == "ROOMESSAGE":
+                        print ("ROOMESSAGE EVENT RECEIVED");
+                    elif eventReceived == "DISCONNECT":
+                        print ("DISCONNECT EVENT RECEIVED");
+                else:
+                    msg = self.messageMaker("No puedes enviar mensajes hasta que te autentiques", "[Servidor]", MessageEvents.MESSAGE)
+                    self.serving.invalidCount += 1
+                    self.serving.transport.write(msg)
+
             else:
                 msg = self.messageMaker("Mensaje invalido","[Servidor]", MessageEvents.MESSAGE)
                 self.serving.invalidCount += 1

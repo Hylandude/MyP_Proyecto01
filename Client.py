@@ -45,7 +45,7 @@ class Client(asyncio.Protocol):
     async def initializeOutput(self, loop):
         self.output = self.stdoutput
         self.output("Te has conectado a: "+str(self.sockname))
-        while True:
+        while self.is_open:
             msg = await loop.run_in_executor(None, input)
             self.send(msg)
 
