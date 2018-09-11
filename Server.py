@@ -26,13 +26,12 @@ class Server(asyncio.Protocol):
         print("STABLISHED CONNECTION :"+str(transport.get_extra_info('sockname')))
 
     def connection_lost(self, exc):
-        print("LOST CONNECTION")
-        self.connections.remove(self.transport)
-        print("\n********\n"+str(exc)+"\n**********\n")
-        err = self.peername+" se ha desconectado"
-        message = self.messageMaker(err, "[Servidor]", MessageEvents.MESSAGE)
-        print(err)
+        self.users.remove(self.serving)
+        msg = self.serving.name+" se ha desconectado"
+        message = self.messageMaker(msg, "[Servidor]", MessageEvents.MESSAGE)
+        print(msg)
         self.sendToAll(message)
+        print(self.users)
 
     def data_received(self, data):
         if data:
@@ -103,7 +102,7 @@ if __name__ == "__main__":
     coro = loop.create_server(lambda: Server(rooms, users), "127.0.0.1", args[0])
     server = loop.run_until_complete(coro)
 
-    print('Serving on {}:{}'.format(*server.sockets[0].getsockname()))
+    print("Servidor corriendo en: "+str(server.sockets[0].getsockname()))
     try:
         loop.run_forever()
     except KeyboardInterrupt:
