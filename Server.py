@@ -71,8 +71,13 @@ class Server(asyncio.Protocol):
                             else:
                                 self.personalMessage(recepient, incomingString)
                     elif eventReceived == "PUBLICMESSAGE":
-                        msg = self.messageMaker(incomingString, self.serving.name, MessageEvents.MESSAGE)
-                        self.sendToAll(msg)
+                        if len(incomingData) < 2:
+                            print("Invalid PUBLICMESSAGE event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            message = incomingString[14:len(incomingString)]
+                            msg = self.messageMaker(message, self.serving.name, MessageEvents.PUBLICMESSAGE)
+                            self.sendToAll(msg)
                     elif eventReceived == "CREATEROOM":
                         print ("CREATEROOM EVENT RECEIVED");
                     elif eventReceived == "INVITE":
