@@ -127,10 +127,16 @@ class Server(asyncio.Protocol):
 
     def identify(self, name):
         if self.serving.name == "":
-            print(name+" se ha conectado")
-            msg = self.messageMaker("Bienvenido: "+name, "[Servidor]", MessageEvents.MESSAGE)
-            self.sendToAll(msg)
-            self.serving.setName(name)
+            var sameNameUser = self.findUser(name)
+            if sameNameUser is None:
+                print(name+" se ha conectado")
+                msg = self.messageMaker("Bienvenido: "+name, "[Servidor]", MessageEvents.PUBLICMESSAGE)
+                self.sendToAll(msg)
+                self.serving.setName(name)
+            else:
+                print("Se recibio un nombre duplicado")
+                msg = self.test_messageMaker("El nombre que escogiste ya esta en uso")
+                self.serving.transport.write(msg)
         else:
             print(self.serving.name+" trato de identificarse dos veces")
             msg = self.messageMaker("Ya estas identificado, no es posible cambiar tu nombre", "[Servidor]", MessageEvents.MESSAGE)
