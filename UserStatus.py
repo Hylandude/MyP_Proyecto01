@@ -7,7 +7,7 @@ class UserStatus(Enum):
 
     def __str__(self):
         return{
-            'ACTIVE' : "ACTIVE//",
-            'AWAY' : "AWAY//",
-            'BUSY' : "BUSY//"
+            'ACTIVE' : "ACTIVE",
+            'AWAY' : "AWAY",
+            'BUSY' : "BUSY"
         }[self.name]

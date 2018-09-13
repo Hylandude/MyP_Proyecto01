@@ -20,6 +20,8 @@ class Server(asyncio.Protocol):
         self.serving = None
 
     def connection_made(self, transport):
+        print(transport)
+        print(type(transport))
         newUser = User(transport)
         self.users += [newUser]
         self.serving = newUser
@@ -47,9 +49,17 @@ class Server(asyncio.Protocol):
                         self.identify(incomingData[1])
                 elif self.serving.name != "":
                     if eventReceived == "STATUS":
-                        print ("STATUS EVENT RECEIVED");
+                        if len(incomingData) != 2:
+                            print("Invalid STATUS event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.status(incomingData[1])
                     elif eventReceived == "USERS":
-                        print ("USERS EVENT RECEIVED");
+                        if len(incomingData) != 1:
+                            print("Invalid USERS event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.sendUserList()
                     elif eventReceived == "MESSAGE":
                         print ("MESSAGE EVENT RECEIVED");
                     elif eventReceived == "PUBLICMESSAGE":
@@ -106,6 +116,21 @@ class Server(asyncio.Protocol):
             msg = self.messageMaker("Ya estas identificado, no es posible cambiar tu nombre", "[Servidor]", MessageEvents.MESSAGE)
             self.serving.transport.write(msg)
 
+    def status(self, statusSelected):
+        try:
+            self.serving.setStatus(UserStatus[statusSelected.upper()])
+        except KeyError:
+            print("Received invalid status on event")
+            self.notifyInvalidMessage("Status invalido. Debe ser 'ACTIVE', 'AWAY' o 'BUSY'")
+
+    def sendUserList(self):
+        userString = ""
+        for user in self.users:
+            if user.isAuthenticated:
+                userString += user.name+", "
+        userString = userString[0:len(userString)-2]
+        msg = self.messageMaker(userString, "[Servidor]", MessageEvents.MESSAGE)
+        self.serving.transport.write(msg)
 
 if __name__ == "__main__":
     users = []
