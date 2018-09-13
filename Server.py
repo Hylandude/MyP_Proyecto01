@@ -61,9 +61,17 @@ class Server(asyncio.Protocol):
                         else:
                             self.sendUserList()
                     elif eventReceived == "MESSAGE":
-                        print ("MESSAGE EVENT RECEIVED");
+                        if len(incomingData) < 3:
+                            print("Invalid MESSAGE event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            recepient = self.findUser(incomingData[1])
+                            if(recepient is None):
+                                self.notifyInvalidMessage("El usuario seleccionado no existe")
+                            else:
+                                self.personalMessage(recepient, incomingString)
                     elif eventReceived == "PUBLICMESSAGE":
-                        msg = self.messageMaker(stringReceived, self.serving.name, MessageEvents.MESSAGE)
+                        msg = self.messageMaker(incomingString, self.serving.name, MessageEvents.MESSAGE)
                         self.sendToAll(msg)
                     elif eventReceived == "CREATEROOM":
                         print ("CREATEROOM EVENT RECEIVED");
@@ -100,6 +108,13 @@ class Server(asyncio.Protocol):
         for user in self.users:
             user.transport.write(message)
 
+    def findUser(self, searchedName):
+        recepient = None
+        for user in users:
+            if(user.name == searchedName):
+                recepient = user
+        return recepient
+
     def notifyInvalidMessage(self, notice):
         msg = self.messageMaker(notice, "[Servidor]", MessageEvents.MESSAGE)
         self.serving.invalidCount += 1
@@ -131,6 +146,12 @@ class Server(asyncio.Protocol):
         userString = userString[0:len(userString)-2]
         msg = self.messageMaker(userString, "[Servidor]", MessageEvents.MESSAGE)
         self.serving.transport.write(msg)
+
+    def personalMessage(self, recepient, entireString):
+        prefixLength = 9 + len(recepient.name)
+        message = entireString[prefixLength:len(entireString)]
+        msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE)
+        recepient.transport.write(msg)
 
 if __name__ == "__main__":
     users = []
