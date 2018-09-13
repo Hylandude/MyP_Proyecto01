@@ -7,6 +7,7 @@ class User():
         self.invalidCount = 0
         self.peername =  transport.get_extra_info('sockname')
         self.name = ""
+        self.pendingInvitations = []
 
     def setName(self, name):
         self.name = name
