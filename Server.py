@@ -144,7 +144,7 @@ class Server(asyncio.Protocol):
                 self.serving.setName(name)
             else:
                 print("Se recibio un nombre duplicado")
-                msg = self.test_messageMaker("El nombre que escogiste ya esta en uso")
+                msg = self.messageMaker("El nombre que escogiste ya esta en uso", [Servidor], MessageEvents.MESSAGE)
                 self.serving.transport.write(msg)
         else:
             print(self.serving.name+" trato de identificarse dos veces")
@@ -202,8 +202,11 @@ class Server(asyncio.Protocol):
                 for invited in invitedUsers:
                     user = self.findUser(invited)
                     if not (user is None) and user.name != self.serving.name:
-                        user.pendingInvitations.append(room)
-                        print("Invited "+user.name+" to room: "+room.name)
+                        if not any(invitation == roomName for invitation in user.pendingInvitations):
+                            user.pendingInvitations.append(room.name)
+                            print("Invited "+user.name+" to room: "+room.name)
+                        else:
+                            print(user.name+" has already been invited to the room")
 
                 msg = self.messageMaker("Se han enviado las invitaciones",  "[Servidor]", MessageEvents.MESSAGE)
                 self.serving.transport.write(msg)
