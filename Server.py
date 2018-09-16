@@ -86,7 +86,11 @@ class Server(asyncio.Protocol):
                         else:
                             self.createRoom(incomingData[1])
                     elif eventReceived == "INVITE":
-                        print ("INVITE EVENT RECEIVED");
+                        if len(incomingData) < 3:
+                            print("Invalid INVITE event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.invite(incomingData[1], incomingString)
                     elif eventReceived == "JOINROOM":
                         print ("JOINROOM EVENT RECEIVED");
                     elif eventReceived == "ROOMESSAGE":
@@ -169,11 +173,42 @@ class Server(asyncio.Protocol):
         msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE)
         recepient.transport.write(msg)
 
+    def checkUniqueRoom(self, roomName):
+        try:
+            testRoom = self.rooms[roomName]
+            return False
+        except KeyError:
+            return True
+
     def createRoom(self, roomName):
-        room = Room(roomName, self.serving)
-        room.addUser(self.serving)
-        msg = self.messageMaker("Se ha creado la habitacion: "+roomName, "[Servidor]", MessageEvents.MESSAGE)
-        self.serving.transport.write(msg)
+        if self.checkUniqueRoom(roomName):
+            room = Room(roomName, self.serving)
+            room.addUser(self.serving)
+            self.rooms[roomName] = room
+            msg = self.messageMaker("Se ha creado la habitacion: "+roomName, "[Servidor]", MessageEvents.MESSAGE)
+            self.serving.transport.write(msg)
+        else:
+            msg = self.messageMaker("Ya existe una habitacion con ese nombre, usa uno distinto", "[Servidor]", MessageEvents.MESSAGE)
+            self.serving.transport.write(msg)
+
+    def invite(self, roomName, entireString):
+        try:
+            room = self.rooms[roomName]
+            prefixLength = 8 + len(roomName)
+            invitedUsers = entireString[prefixLength:len(entireString)]
+            invitedUsers = invitedUsers.split(" ")
+
+            for invited in invitedUsers:
+                user = self.findUser(invited)
+                if not (user is None):
+                    user.pendingInvitations.append(room)
+                    print("Invited "+user.name+" to room: "+room.name)
+
+            msg = self.messageMaker("Se han enviado las invitaciones",  "[Servidor]", MessageEvents.MESSAGE)
+            self.serving.transport.write(msg)
+        except KeyError:
+            self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
+
 
 if __name__ == "__main__":
     users = []
