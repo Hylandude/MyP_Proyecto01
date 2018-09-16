@@ -94,7 +94,11 @@ class Server(asyncio.Protocol):
                         else:
                             self.joinRoom(incomingData[1])
                     elif eventReceived == "ROOMESSAGE":
-                        print ("ROOMESSAGE EVENT RECEIVED");
+                        if len(incomingData) < 3:
+                            print("Invalid ROOMESSAGE event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.roomMessage(incomingData[1], incomingString)
                     elif eventReceived == "DISCONNECT":
                         print ("DISCONNECT EVENT RECEIVED");
                 else:
@@ -111,7 +115,7 @@ class Server(asyncio.Protocol):
 
     def messageMaker(self, message, author, event, room=""):
         if room != "":
-            room+"-"
+            room = room+"-"
         return (str(event)+room+author+": "+message).encode()
 
     def validateEvent(self, eventType):
@@ -241,6 +245,18 @@ class Server(asyncio.Protocol):
                 self.serving.transport.write(msg)
         except KeyError:
             self.notifyInvalidMessage("No existe una sala con el nombre: "+roomName)
+
+    def roomMessage(self, roomName, entireString):
+        try:
+            room = self.rooms[roomName]
+            prefixLength = 12 + len(roomName)
+            message = entireString[prefixLength:len(entireString)]
+            msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE, room.name)
+            for user in room.connectedUsers:
+                user.transport.write(msg)
+        except KeyError:
+            self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
+
 
 if __name__ == "__main__":
     users = []
