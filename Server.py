@@ -65,11 +65,7 @@ class Server(asyncio.Protocol):
                             print("Invalid MESSAGE event")
                             self.notifyInvalidMessage(MessageEvents.validList())
                         else:
-                            recepient = self.findUser(incomingData[1])
-                            if(recepient is None):
-                                self.notifyInvalidMessage("El usuario seleccionado no existe")
-                            else:
-                                self.personalMessage(recepient, incomingString)
+                            self.personalMessage(incomingData[1], incomingString)
                     elif eventReceived == "PUBLICMESSAGE":
                         if len(incomingData) < 2:
                             print("Invalid PUBLICMESSAGE event")
@@ -171,11 +167,15 @@ class Server(asyncio.Protocol):
         msg = self.messageMaker(userString, "[Servidor]", MessageEvents.MESSAGE)
         self.serving.transport.write(msg)
 
-    def personalMessage(self, recepient, entireString):
-        prefixLength = 9 + len(recepient.name)
-        message = entireString[prefixLength:len(entireString)]
-        msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE)
-        recepient.transport.write(msg)
+    def personalMessage(self, recepientName, entireString):
+        recepient = self.findUser(recepientName)
+        if(recepient is None):
+            self.notifyInvalidMessage("El usuario seleccionado no existe")
+        else:
+            prefixLength = 9 + len(recepient.name)
+            message = entireString[prefixLength:len(entireString)]
+            msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE)
+            recepient.transport.write(msg)
 
     def checkUniqueRoom(self, roomName):
         try:
