@@ -109,8 +109,10 @@ class Server(asyncio.Protocol):
             print("Se recibio un mensaje vacio")
             self.notifyInvalidMessage("Mensaje vacio no permitido")
 
-    def messageMaker(self, message, author, event):
-        return (str(event)+author+": "+message).encode()
+    def messageMaker(self, message, author, event, room=""):
+        if room != "":
+            room+"-"
+        return (str(event)+room+author+": "+message).encode()
 
     def validateEvent(self, eventType):
         try:
