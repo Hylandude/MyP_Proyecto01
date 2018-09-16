@@ -194,18 +194,21 @@ class Server(asyncio.Protocol):
     def invite(self, roomName, entireString):
         try:
             room = self.rooms[roomName]
-            prefixLength = 8 + len(roomName)
-            invitedUsers = entireString[prefixLength:len(entireString)]
-            invitedUsers = invitedUsers.split(" ")
+            if(self.serving.name == room.owner.name):
+                prefixLength = 8 + len(roomName)
+                invitedUsers = entireString[prefixLength:len(entireString)]
+                invitedUsers = invitedUsers.split(" ")
 
-            for invited in invitedUsers:
-                user = self.findUser(invited)
-                if not (user is None):
-                    user.pendingInvitations.append(room)
-                    print("Invited "+user.name+" to room: "+room.name)
+                for invited in invitedUsers:
+                    user = self.findUser(invited)
+                    if not (user is None) and user.name != self.serving.name:
+                        user.pendingInvitations.append(room)
+                        print("Invited "+user.name+" to room: "+room.name)
 
-            msg = self.messageMaker("Se han enviado las invitaciones",  "[Servidor]", MessageEvents.MESSAGE)
-            self.serving.transport.write(msg)
+                msg = self.messageMaker("Se han enviado las invitaciones",  "[Servidor]", MessageEvents.MESSAGE)
+                self.serving.transport.write(msg)
+            else:
+                self.notifyInvalidMessage("Solo el dueño de la habitacion puede invitar usuarios")
         except KeyError:
             self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
 
