@@ -47,6 +47,12 @@ class Server(asyncio.Protocol):
                         self.notifyInvalidMessage(MessageEvents.validList())
                     else:
                         self.identify(incomingData[1])
+                elif eventReceived == "DISCONNECT":
+                    if len(incomingData) != 1:
+                        print("Invalid USERS event")
+                        self.notifyInvalidMessage(MessageEvents.validList())
+                    else:
+                        self.disconnectUser()
                 elif self.serving.name != "":
                     if eventReceived == "STATUS":
                         if len(incomingData) != 2:
@@ -99,12 +105,6 @@ class Server(asyncio.Protocol):
                             self.notifyInvalidMessage(MessageEvents.validList())
                         else:
                             self.roomMessage(incomingData[1], incomingString)
-                    elif eventReceived == "DISCONNECT":
-                        if len(incomingData) != 1:
-                            print("Invalid USERS event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.disconnectUser()
 
                 else:
                     print("Usuario no autenticado intento un evento")
