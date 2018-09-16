@@ -100,7 +100,12 @@ class Server(asyncio.Protocol):
                         else:
                             self.roomMessage(incomingData[1], incomingString)
                     elif eventReceived == "DISCONNECT":
-                        print ("DISCONNECT EVENT RECEIVED");
+                        if len(incomingData) != 1:
+                            print("Invalid USERS event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.disconnectUser()
+
                 else:
                     print("Usuario no autenticado intento un evento")
                     self.notifyInvalidMessage("No puedes enviar mensajes hasta que te autentiques")
@@ -259,6 +264,9 @@ class Server(asyncio.Protocol):
                 self.notifyInvalidMessage("No puedes enviar el mensaje porque no eres parte de la habitacion: "+room.name)
         except KeyError:
             self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
+
+    def disconnectUser(self):
+        self.serving.transport.close()
 
 
 if __name__ == "__main__":
