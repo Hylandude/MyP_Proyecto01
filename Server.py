@@ -80,6 +80,11 @@ class Server(asyncio.Protocol):
                             self.sendToAll(msg)
                     elif eventReceived == "CREATEROOM":
                         print ("CREATEROOM EVENT RECEIVED");
+                        if len(incomingData) != 2:
+                            print("Invalid USERS event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.createRoom(incomingData[1])
                     elif eventReceived == "INVITE":
                         print ("INVITE EVENT RECEIVED");
                     elif eventReceived == "JOINROOM":
@@ -127,7 +132,7 @@ class Server(asyncio.Protocol):
 
     def identify(self, name):
         if self.serving.name == "":
-            var sameNameUser = self.findUser(name)
+            sameNameUser = self.findUser(name)
             if sameNameUser is None:
                 print(name+" se ha conectado")
                 msg = self.messageMaker("Bienvenido: "+name, "[Servidor]", MessageEvents.PUBLICMESSAGE)
@@ -163,6 +168,12 @@ class Server(asyncio.Protocol):
         message = entireString[prefixLength:len(entireString)]
         msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE)
         recepient.transport.write(msg)
+
+    def createRoom(self, roomName):
+        room = Room(roomName, self.serving)
+        room.addUser(self.serving)
+        msg = self.messageMaker("Se ha creado la habitacion: "+roomName, "[Servidor]", MessageEvents.MESSAGE)
+        self.serving.transport.write(msg)
 
 if __name__ == "__main__":
     users = []
