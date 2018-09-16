@@ -92,7 +92,11 @@ class Server(asyncio.Protocol):
                         else:
                             self.invite(incomingData[1], incomingString)
                     elif eventReceived == "JOINROOM":
-                        print ("JOINROOM EVENT RECEIVED");
+                        if len(incomingData) != 2:
+                            print("Invalid JOINROOM event")
+                            self.notifyInvalidMessage(MessageEvents.validList())
+                        else:
+                            self.joinRoom(incomingData[1])
                     elif eventReceived == "ROOMESSAGE":
                         print ("ROOMESSAGE EVENT RECEIVED");
                     elif eventReceived == "DISCONNECT":
@@ -144,7 +148,7 @@ class Server(asyncio.Protocol):
                 self.serving.setName(name)
             else:
                 print("Se recibio un nombre duplicado")
-                msg = self.messageMaker("El nombre que escogiste ya esta en uso", [Servidor], MessageEvents.MESSAGE)
+                msg = self.messageMaker("El nombre que escogiste ya esta en uso", "[Servidor]", MessageEvents.MESSAGE)
                 self.serving.transport.write(msg)
         else:
             print(self.serving.name+" trato de identificarse dos veces")
@@ -217,6 +221,24 @@ class Server(asyncio.Protocol):
         except KeyError:
             self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
 
+    def joinRoom(self, roomName):
+        try:
+            room = self.rooms[roomName]
+            if any(pendingInvite == room.name for pendingInvite in self.serving.pendingInvitations):
+                if not any( roomMember.name == self.serving.name for roomMember in room.connectedUsers):
+                    room.addUser(self.serving)
+                    msg = self.messageMaker("Te haz unido a la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                    self.serving.pendingInvitations.remove(room.name)
+                    self.serving.transport.write(msg)
+                else:
+                    msg = self.messageMaker("Ya eres parte de la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                    self.serving.pendingInvitations.remove(room.name)
+                    self.serving.transport.write(msg)
+            else:
+                msg = self.messageMaker("No tienes ninguna invitacion para la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                self.serving.transport.write(msg)
+        except KeyError:
+            self.notifyInvalidMessage("No existe una sala con el nombre: "+roomName)
 
 if __name__ == "__main__":
     users = []
