@@ -249,11 +249,14 @@ class Server(asyncio.Protocol):
     def roomMessage(self, roomName, entireString):
         try:
             room = self.rooms[roomName]
-            prefixLength = 12 + len(roomName)
-            message = entireString[prefixLength:len(entireString)]
-            msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE, room.name)
-            for user in room.connectedUsers:
-                user.transport.write(msg)
+            if any( insideUser.name == self.serving.name for insideUser in room.connectedUsers ):
+                prefixLength = 12 + len(roomName)
+                message = entireString[prefixLength:len(entireString)]
+                msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE, room.name)
+                for user in room.connectedUsers:
+                    user.transport.write(msg)
+            else:
+                self.notifyInvalidMessage("No puedes enviar el mensaje porque no eres parte de la habitacion: "+room.name)
         except KeyError:
             self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
 
