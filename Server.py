@@ -205,6 +205,8 @@ class Server(asyncio.Protocol):
                         if not any(invitation == roomName for invitation in user.pendingInvitations):
                             user.pendingInvitations.append(room.name)
                             print("Invited "+user.name+" to room: "+room.name)
+                            msg = self.messageMaker("Has recibido una invitacion para la habitacion: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                            user.transport.write(msg)
                         else:
                             print(user.name+" has already been invited to the room")
 
