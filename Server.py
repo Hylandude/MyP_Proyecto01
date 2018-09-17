@@ -1,16 +1,11 @@
 import asyncio
+import math
 import sys
+
 from MessageEvents import MessageEvents
 from UserStatus import UserStatus
 from User import User
 from Room import Room
-
-#Get host and port from command line arguments
-args = sys.argv
-args = args[1:len(args)]
-if len(args) != 1:
-    print("Usage: $python3 Server.py <port>");
-    sys.exit(1)
 
 class Server(asyncio.Protocol):
 
@@ -268,12 +263,22 @@ class Server(asyncio.Protocol):
     def disconnectUser(self):
         self.serving.transport.close()
 
+def main(args):
 
-if __name__ == "__main__":
+    if len(args) != 1:
+        print("Usage: $python3 Server.py <port>");
+        sys.exit(1)
+
+    try:
+        port = int(args[0])
+    except ValueError:
+        print("PORT must be an integer number");
+        sys.exit(1)
+
     users = []
     rooms = {}
     loop = asyncio.get_event_loop()
-    coro = loop.create_server(lambda: Server(rooms, users), "127.0.0.1", args[0])
+    coro = loop.create_server(lambda: Server(rooms, users), "127.0.0.1", port)
     server = loop.run_until_complete(coro)
 
     print("Servidor corriendo en: "+str(server.sockets[0].getsockname()))
@@ -285,3 +290,6 @@ if __name__ == "__main__":
     server.close()
     loop.run_until_complete(server.wait_closed())
     loop.close()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
