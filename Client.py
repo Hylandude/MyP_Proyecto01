@@ -3,17 +3,9 @@ import sys
 from sys import stdout
 from UserStatus import UserStatus
 
-#Get host and port from command line arguments
-args = sys.argv
-args = args[1:len(args)]
-if len(args) != 3:
-    print("Usage: $python3 client.py <host> <port> <username>");
-    sys.exit(1)
-
 class Client(asyncio.Protocol):
 
-    def __init__(self, loop, username):
-        self.username = username
+    def __init__(self, loop):
         self.is_open = False
         self.loop = loop
 
@@ -60,11 +52,19 @@ class Client(asyncio.Protocol):
     def stdoutput(self, data):
         stdout.write(data+ '\n')
 
-if __name__ == "__main__":
+def main(args):
+    #Get host and port from command line arguments
+    if len(args) != 2:
+        print("Usage: $python3 client.py <host> <port>");
+        sys.exit(1)
+
     loop = asyncio.get_event_loop()
-    userClient = Client(loop, args[2])
+    userClient = Client(loop)
     coro = loop.create_connection(lambda: userClient, args[0], args[1])
     server = loop.run_until_complete(coro)
     asyncio.async(userClient.initializeOutput(loop))
     loop.run_forever()
     loop.close()
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
