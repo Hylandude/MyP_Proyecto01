@@ -55,7 +55,7 @@ class Client(asyncio.Protocol):
 def main(args):
     #Get host and port from command line arguments
     if len(args) != 2:
-        print("Usage: $python3 client.py <host> <port>");
+        print("Usage: $python3 Client.py <host> <port>");
         sys.exit(1)
 
     loop = asyncio.get_event_loop()
