@@ -41,8 +41,11 @@ def listenClient(transport):
     serving = User(transport)
     users.append(serving)
     while True:
-        data = transport.recv(buff)
-        data_received(data, serving)
+        try:
+            data = transport.recv(buff)
+            data_received(data, serving)
+        except OSError:
+            pass
 
 def data_received(data, serving):
     if data:

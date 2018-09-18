@@ -52,10 +52,14 @@ def main(args):
         print("No fue posible conectarse")
         sys.exit(1)
 
-    listenServer = Thread(target=data_received, args=(client,))
-    readInput = Thread(target=consoleInput, args=(client,))
-    listenServer.start()
-    readInput.start()
+    try:
+        listenServer = Thread(target=data_received, args=(client,))
+        readInput = Thread(target=consoleInput, args=(client,))
+        listenServer.start()
+        readInput.start()
+    except KeyboardInterrupt:
+        listenServer.join()
+        readInput.join()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

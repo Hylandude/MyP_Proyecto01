@@ -1,7 +1,6 @@
 from tkinter import *
 from tkinter import ttk
 import sys
-from threading import Thread
 
 import Client
 
@@ -37,5 +36,6 @@ for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
 
 feet_entry.focus()
 root.bind('<Return>', calculate)
-Thread(target=Client.main, args=(sys.argv[1:],)).start()
 root.mainloop()
+
+Client.main(sys.argv[1:])
