@@ -1,295 +1,303 @@
-import asyncio
 import math
 import sys
+from socket import AF_INET, socket, SOCK_STREAM
+from threading import Thread
 
 from MessageEvents import MessageEvents
 from UserStatus import UserStatus
 from User import User
 from Room import Room
 
-class Server(asyncio.Protocol):
+args = sys.argv[1:]
+if len(args) != 1:
+    print("Usage: $python3 Server.py <port>");
+    sys.exit(1)
 
-    def __init__(self, rooms, users):
-        self.rooms = rooms
-        self.users = users
-        self.serving = None
+try:
+    port = int(args[0])
+except ValueError:
+    print("PORT must be an integer number");
+    sys.exit(1)
 
-    def connection_made(self, transport):
-        print(transport)
-        print(type(transport))
-        newUser = User(transport)
-        self.users += [newUser]
-        self.serving = newUser
-        print("STABLISHED CONNECTION :"+str(transport.get_extra_info('sockname')))
+users = []
+rooms = {}
 
-    def connection_lost(self, exc):
-        self.users.remove(self.serving)
-        msg = self.serving.name+" se ha desconectado"
-        message = self.messageMaker(msg, "[Servidor]", MessageEvents.MESSAGE)
-        print(msg)
-        self.sendToAll(message)
+address = ("127.0.0.1",port)
+server = socket(AF_INET, SOCK_STREAM)
+server.bind(address)
 
-    def data_received(self, data):
-        if data:
-            incomingString = data.decode()
-            incomingData = incomingString.split(" ")
-            print("received: "+incomingString+" \nFrom: "+self.serving.name)
-            eventReceived = incomingData[0]
-            if self.validateEvent(eventReceived):
-                if eventReceived == "IDENTIFY":
+buff = 1024
+
+def acceptConnection():
+    try:
+        while True:
+            transport, clientAddress = server.accept()
+            print("Se recibio una conexion en: "+str(clientAddress))
+            Thread(target=listenClient, args=(transport,)).start()
+    except KeyboardInterrupt:
+        server.close()
+
+def listenClient(transport):
+    serving = User(transport)
+    users.append(serving)
+    while True:
+        data = transport.recv(buff)
+        data_received(data, serving)
+
+def data_received(data, serving):
+    if data:
+        print(type(data))
+        data = data.decode()
+        print(type(data))
+        incomingString = data
+        incomingData = incomingString.split(" ")
+        print("received: "+incomingString+" \nFrom: "+serving.name)
+        eventReceived = incomingData[0]
+        if validateEvent(eventReceived):
+            if eventReceived == "IDENTIFY":
+                if len(incomingData) != 2:
+                    print ("Invalid IDENTIFY event")
+                    notifyInvalidMessage(MessageEvents.validList(), serving)
+                else:
+                    identify(incomingData[1], serving)
+            elif eventReceived == "DISCONNECT":
+                if len(incomingData) != 1:
+                    print("Invalid USERS event")
+                    notifyInvalidMessage(MessageEvents.validList(), serving)
+                else:
+                    disconnectUser(serving)
+            elif serving.name != "":
+                if eventReceived == "STATUS":
                     if len(incomingData) != 2:
-                        print ("Invalid IDENTIFY event")
-                        self.notifyInvalidMessage(MessageEvents.validList())
+                        print("Invalid STATUS event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
                     else:
-                        self.identify(incomingData[1])
-                elif eventReceived == "DISCONNECT":
+                        status(incomingData[1], serving)
+                elif eventReceived == "USERS":
                     if len(incomingData) != 1:
                         print("Invalid USERS event")
-                        self.notifyInvalidMessage(MessageEvents.validList())
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
                     else:
-                        self.disconnectUser()
-                elif self.serving.name != "":
-                    if eventReceived == "STATUS":
-                        if len(incomingData) != 2:
-                            print("Invalid STATUS event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.status(incomingData[1])
-                    elif eventReceived == "USERS":
-                        if len(incomingData) != 1:
-                            print("Invalid USERS event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.sendUserList()
-                    elif eventReceived == "MESSAGE":
-                        if len(incomingData) < 3:
-                            print("Invalid MESSAGE event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.personalMessage(incomingData[1], incomingString)
-                    elif eventReceived == "PUBLICMESSAGE":
-                        if len(incomingData) < 2:
-                            print("Invalid PUBLICMESSAGE event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            message = incomingString[14:len(incomingString)]
-                            msg = self.messageMaker(message, self.serving.name, MessageEvents.PUBLICMESSAGE)
-                            self.sendToAll(msg)
-                    elif eventReceived == "CREATEROOM":
-                        print ("CREATEROOM EVENT RECEIVED");
-                        if len(incomingData) != 2:
-                            print("Invalid USERS event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.createRoom(incomingData[1])
-                    elif eventReceived == "INVITE":
-                        if len(incomingData) < 3:
-                            print("Invalid INVITE event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.invite(incomingData[1], incomingString)
-                    elif eventReceived == "JOINROOM":
-                        if len(incomingData) != 2:
-                            print("Invalid JOINROOM event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.joinRoom(incomingData[1])
-                    elif eventReceived == "ROOMESSAGE":
-                        if len(incomingData) < 3:
-                            print("Invalid ROOMESSAGE event")
-                            self.notifyInvalidMessage(MessageEvents.validList())
-                        else:
-                            self.roomMessage(incomingData[1], incomingString)
-
-                else:
-                    print("Usuario no autenticado intento un evento")
-                    self.notifyInvalidMessage("No puedes enviar mensajes hasta que te autentiques")
+                        sendUserList(serving)
+                elif eventReceived == "MESSAGE":
+                    if len(incomingData) < 3:
+                        print("Invalid MESSAGE event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
+                    else:
+                        personalMessage(incomingData[1], incomingString, serving)
+                elif eventReceived == "PUBLICMESSAGE":
+                    if len(incomingData) < 2:
+                        print("Invalid PUBLICMESSAGE event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
+                    else:
+                        message = incomingString[14:len(incomingString)]
+                        msg = messageMaker(message, serving.name, MessageEvents.PUBLICMESSAGE)
+                        sendToAll(msg)
+                elif eventReceived == "CREATEROOM":
+                    print ("CREATEROOM EVENT RECEIVED");
+                    if len(incomingData) != 2:
+                        print("Invalid USERS event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
+                    else:
+                        createRoom(incomingData[1], serving)
+                elif eventReceived == "INVITE":
+                    if len(incomingData) < 3:
+                        print("Invalid INVITE event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
+                    else:
+                        invite(incomingData[1], incomingString, serving)
+                elif eventReceived == "JOINROOM":
+                    if len(incomingData) != 2:
+                        print("Invalid JOINROOM event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
+                    else:
+                        joinRoom(incomingData[1], serving)
+                elif eventReceived == "ROOMESSAGE":
+                    if len(incomingData) < 3:
+                        print("Invalid ROOMESSAGE event")
+                        notifyInvalidMessage(MessageEvents.validList(), serving)
+                    else:
+                        roomMessage(incomingData[1], incomingString, serving)
 
             else:
-                print("Se recibio un mensaje invalido")
-                self.notifyInvalidMessage(MessageEvents.validList())
+                print("Usuario no autenticado intento un evento")
+                notifyInvalidMessage("No puedes enviar mensajes hasta que te autentiques", serving)
 
         else:
-            print("Se recibio un mensaje vacio")
-            self.notifyInvalidMessage("Mensaje vacio no permitido")
+            print("Se recibio un mensaje invalido")
+            notifyInvalidMessage(MessageEvents.validList(), serving)
 
-    def messageMaker(self, message, author, event, room=""):
-        if room != "":
-            room = room+"-"
-        return (str(event)+room+author+": "+message).encode()
+    else:
+        print("Se recibio un mensaje vacio")
+        notifyInvalidMessage("Mensaje vacio no permitido", serving)
 
-    def validateEvent(self, eventType):
-        try:
-            return eventType+" " == str(MessageEvents[eventType])
-        except KeyError:
-            return False
+def messageMaker(message, author, event, room=""):
+    if room != "":
+        room = room+"-"
+    return (str(event)+room+author+": "+message).encode('utf8')
 
-    def sendToAll(self, message):
-        for user in self.users:
-            user.transport.write(message)
+def validateEvent(eventType):
+    try:
+        return eventType+" " == str(MessageEvents[eventType])
+    except KeyError:
+        return False
 
-    def findUser(self, searchedName):
-        recepient = None
-        for user in users:
-            if(user.name == searchedName):
-                recepient = user
-        return recepient
+def sendToAll(message):
+    for user in users:
+        user.transport.send(message)
 
-    def notifyInvalidMessage(self, notice):
-        msg = self.messageMaker(notice, "[Servidor]", MessageEvents.MESSAGE)
-        self.serving.invalidCount += 1
-        self.serving.transport.write(msg)
+def findUser(searchedName):
+    recepient = None
+    for user in users:
+        if(user.name == searchedName):
+            recepient = user
+    return recepient
 
-    def identify(self, name):
-        if self.serving.name == "":
-            sameNameUser = self.findUser(name)
-            if sameNameUser is None:
-                print(name+" se ha conectado")
-                msg = self.messageMaker("Bienvenido: "+name, "[Servidor]", MessageEvents.PUBLICMESSAGE)
-                self.sendToAll(msg)
-                self.serving.setName(name)
+def notifyInvalidMessage(notice, serving):
+    msg = messageMaker(notice, "[Servidor]", MessageEvents.MESSAGE)
+    serving.invalidCount += 1
+    serving.transport.send(msg)
+
+def identify(name, serving):
+    if serving.name == "":
+        sameNameUser = findUser(name)
+        if sameNameUser is None:
+            print(name+" se ha conectado")
+            msg = messageMaker("Bienvenido: "+name, "[Servidor]", MessageEvents.PUBLICMESSAGE)
+            sendToAll(msg)
+            serving.setName(name)
+        else:
+            print("Se recibio un nombre duplicado")
+            msg = messageMaker("El nombre que escogiste ya esta en uso", "[Servidor]", MessageEvents.MESSAGE)
+            serving.transport.send(msg)
+    else:
+        print(serving.name+" trato de identificarse dos veces")
+        msg = messageMaker("Ya estas identificado, no es posible cambiar tu nombre", "[Servidor]", MessageEvents.MESSAGE)
+        serving.transport.send(msg)
+
+def status(statusSelected, serving):
+    try:
+        serving.setStatus(UserStatus[statusSelected.upper()])
+    except KeyError:
+        print("Received invalid status on event")
+        notifyInvalidMessage("Status invalido. Debe ser 'ACTIVE', 'AWAY' o 'BUSY'", serving)
+
+def sendUserList(serving):
+    userString = ""
+    for user in users:
+        if user.isAuthenticated:
+            userString += user.name+", "
+    userString = userString[0:len(userString)-2]
+    msg = messageMaker(userString, "[Servidor]", MessageEvents.MESSAGE)
+    serving.transport.send(msg)
+
+def personalMessage(recepientName, entireString, serving):
+    recepient = findUser(recepientName)
+    if(recepient is None):
+        notifyInvalidMessage("El usuario seleccionado no existe", serving)
+    else:
+        prefixLength = 9 + len(recepient.name)
+        message = entireString[prefixLength:len(entireString)]
+        msg = messageMaker(message, serving.name, MessageEvents.MESSAGE)
+        recepient.transport.send(msg)
+
+def checkUniqueRoom(roomName):
+    try:
+        testRoom = rooms[roomName]
+        return False
+    except KeyError:
+        return True
+
+def createRoom(roomName, serving):
+    if checkUniqueRoom(roomName):
+        room = Room(roomName, serving)
+        room.addUser(serving)
+        rooms[roomName] = room
+        msg = messageMaker("Se ha creado la habitacion: "+roomName, "[Servidor]", MessageEvents.MESSAGE)
+        serving.transport.send(msg)
+    else:
+        msg = messageMaker("Ya existe una habitacion con ese nombre, usa uno distinto", "[Servidor]", MessageEvents.MESSAGE)
+        serving.transport.send(msg)
+
+def invite(roomName, entireString, serving):
+    try:
+        room = rooms[roomName]
+        if(serving.name == room.owner.name):
+            prefixLength = 8 + len(roomName)
+            invitedUsers = entireString[prefixLength:len(entireString)]
+            invitedUsers = invitedUsers.split(" ")
+
+            for invited in invitedUsers:
+                user = findUser(invited)
+                if not (user is None) and user.name != serving.name:
+                    if not any(invitation == roomName for invitation in user.pendingInvitations):
+                        user.pendingInvitations.append(room.name)
+                        print("Invited "+user.name+" to room: "+room.name)
+                        msg = messageMaker("Has recibido una invitacion para la habitacion: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                        user.transport.send(msg)
+                    else:
+                        print(user.name+" has already been invited to the room")
+
+            msg = messageMaker("Se han enviado las invitaciones",  "[Servidor]", MessageEvents.MESSAGE)
+            serving.transport.send(msg)
+        else:
+            notifyInvalidMessage("Solo el dueño de la habitacion puede invitar usuarios", serving)
+    except KeyError:
+        notifyInvalidMessage("La habitacion "+roomName+" no existe", serving)
+
+def joinRoom(roomName, serving):
+    try:
+        room = rooms[roomName]
+        if any(pendingInvite == room.name for pendingInvite in serving.pendingInvitations):
+            if not any( roomMember.name == serving.name for roomMember in room.connectedUsers):
+                room.addUser(serving)
+                msg = messageMaker("Te haz unido a la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                serving.pendingInvitations.remove(room.name)
+                serving.transport.send(msg)
             else:
-                print("Se recibio un nombre duplicado")
-                msg = self.messageMaker("El nombre que escogiste ya esta en uso", "[Servidor]", MessageEvents.MESSAGE)
-                self.serving.transport.write(msg)
+                msg = messageMaker("Ya eres parte de la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+                serving.pendingInvitations.remove(room.name)
+                serving.transport.send(msg)
         else:
-            print(self.serving.name+" trato de identificarse dos veces")
-            msg = self.messageMaker("Ya estas identificado, no es posible cambiar tu nombre", "[Servidor]", MessageEvents.MESSAGE)
-            self.serving.transport.write(msg)
+            msg = messageMaker("No tienes ninguna invitacion para la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
+            serving.transport.send(msg)
+    except KeyError:
+        notifyInvalidMessage("No existe una sala con el nombre: "+roomName, serving)
 
-    def status(self, statusSelected):
-        try:
-            self.serving.setStatus(UserStatus[statusSelected.upper()])
-        except KeyError:
-            print("Received invalid status on event")
-            self.notifyInvalidMessage("Status invalido. Debe ser 'ACTIVE', 'AWAY' o 'BUSY'")
-
-    def sendUserList(self):
-        userString = ""
-        for user in self.users:
-            if user.isAuthenticated:
-                userString += user.name+", "
-        userString = userString[0:len(userString)-2]
-        msg = self.messageMaker(userString, "[Servidor]", MessageEvents.MESSAGE)
-        self.serving.transport.write(msg)
-
-    def personalMessage(self, recepientName, entireString):
-        recepient = self.findUser(recepientName)
-        if(recepient is None):
-            self.notifyInvalidMessage("El usuario seleccionado no existe")
-        else:
-            prefixLength = 9 + len(recepient.name)
+def roomMessage(roomName, entireString, serving):
+    try:
+        room = rooms[roomName]
+        if any( insideUser.name == serving.name for insideUser in room.connectedUsers ):
+            prefixLength = 12 + len(roomName)
             message = entireString[prefixLength:len(entireString)]
-            msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE)
-            recepient.transport.write(msg)
-
-    def checkUniqueRoom(self, roomName):
-        try:
-            testRoom = self.rooms[roomName]
-            return False
-        except KeyError:
-            return True
-
-    def createRoom(self, roomName):
-        if self.checkUniqueRoom(roomName):
-            room = Room(roomName, self.serving)
-            room.addUser(self.serving)
-            self.rooms[roomName] = room
-            msg = self.messageMaker("Se ha creado la habitacion: "+roomName, "[Servidor]", MessageEvents.MESSAGE)
-            self.serving.transport.write(msg)
+            msg = messageMaker(message, serving.name, MessageEvents.MESSAGE, room.name)
+            for user in room.connectedUsers:
+                user.transport.send(msg)
         else:
-            msg = self.messageMaker("Ya existe una habitacion con ese nombre, usa uno distinto", "[Servidor]", MessageEvents.MESSAGE)
-            self.serving.transport.write(msg)
+            notifyInvalidMessage("No puedes enviar el mensaje porque no eres parte de la habitacion: "+room.name, serving)
+    except KeyError:
+        notifyInvalidMessage("La habitacion "+roomName+" no existe", serving)
 
-    def invite(self, roomName, entireString):
-        try:
-            room = self.rooms[roomName]
-            if(self.serving.name == room.owner.name):
-                prefixLength = 8 + len(roomName)
-                invitedUsers = entireString[prefixLength:len(entireString)]
-                invitedUsers = invitedUsers.split(" ")
-
-                for invited in invitedUsers:
-                    user = self.findUser(invited)
-                    if not (user is None) and user.name != self.serving.name:
-                        if not any(invitation == roomName for invitation in user.pendingInvitations):
-                            user.pendingInvitations.append(room.name)
-                            print("Invited "+user.name+" to room: "+room.name)
-                            msg = self.messageMaker("Has recibido una invitacion para la habitacion: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
-                            user.transport.write(msg)
-                        else:
-                            print(user.name+" has already been invited to the room")
-
-                msg = self.messageMaker("Se han enviado las invitaciones",  "[Servidor]", MessageEvents.MESSAGE)
-                self.serving.transport.write(msg)
-            else:
-                self.notifyInvalidMessage("Solo el dueño de la habitacion puede invitar usuarios")
-        except KeyError:
-            self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
-
-    def joinRoom(self, roomName):
-        try:
-            room = self.rooms[roomName]
-            if any(pendingInvite == room.name for pendingInvite in self.serving.pendingInvitations):
-                if not any( roomMember.name == self.serving.name for roomMember in room.connectedUsers):
-                    room.addUser(self.serving)
-                    msg = self.messageMaker("Te haz unido a la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
-                    self.serving.pendingInvitations.remove(room.name)
-                    self.serving.transport.write(msg)
-                else:
-                    msg = self.messageMaker("Ya eres parte de la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
-                    self.serving.pendingInvitations.remove(room.name)
-                    self.serving.transport.write(msg)
-            else:
-                msg = self.messageMaker("No tienes ninguna invitacion para la sala: "+room.name, "[Servidor]", MessageEvents.MESSAGE)
-                self.serving.transport.write(msg)
-        except KeyError:
-            self.notifyInvalidMessage("No existe una sala con el nombre: "+roomName)
-
-    def roomMessage(self, roomName, entireString):
-        try:
-            room = self.rooms[roomName]
-            if any( insideUser.name == self.serving.name for insideUser in room.connectedUsers ):
-                prefixLength = 12 + len(roomName)
-                message = entireString[prefixLength:len(entireString)]
-                msg = self.messageMaker(message, self.serving.name, MessageEvents.MESSAGE, room.name)
-                for user in room.connectedUsers:
-                    user.transport.write(msg)
-            else:
-                self.notifyInvalidMessage("No puedes enviar el mensaje porque no eres parte de la habitacion: "+room.name)
-        except KeyError:
-            self.notifyInvalidMessage("La habitacion "+roomName+" no existe")
-
-    def disconnectUser(self):
-        self.serving.transport.close()
+def disconnectUser(serving):
+    serving.transport.close()
+    users.remove(serving)
+    msg = serving.name+" se ha desconectado"
+    message = messageMaker(msg, "[Servidor]", MessageEvents.MESSAGE)
+    print(msg)
+    sendToAll(message)
 
 def main(args):
-
-    if len(args) != 1:
-        print("Usage: $python3 Server.py <port>");
-        sys.exit(1)
-
-    try:
-        port = int(args[0])
-    except ValueError:
-        print("PORT must be an integer number");
-        sys.exit(1)
-
-    users = []
-    rooms = {}
-    loop = asyncio.get_event_loop()
-    coro = loop.create_server(lambda: Server(rooms, users), "127.0.0.1", port)
-    server = loop.run_until_complete(coro)
-
-    print("Servidor corriendo en: "+str(server.sockets[0].getsockname()))
-    try:
-        loop.run_forever()
-    except KeyboardInterrupt:
-        pass
-
-    server.close()
-    loop.run_until_complete(server.wait_closed())
-    loop.close()
+        try:
+            server.listen()
+            print("Servidor corriendo en: "+str(address))
+            accept = Thread(target = acceptConnection)
+            accept.start()
+            accept.join()
+            server.close()
+        except KeyboardInterrupt:
+            print("caught interrupt")
+            server.close()
+            sys.exit(1)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
