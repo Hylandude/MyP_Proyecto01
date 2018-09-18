@@ -50,7 +50,7 @@ def listenClient(transport):
 def data_received(data, serving):
     if data:
         print(type(data))
-        data = data.decode()
+        data = data.decode("utf-8")
         print(type(data))
         incomingString = data
         incomingData = incomingString.split(" ")
