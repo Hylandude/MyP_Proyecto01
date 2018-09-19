@@ -9,12 +9,12 @@ from User import User
 from Room import Room
 
 args = sys.argv[1:]
-if len(args) != 2:
-    print("Usage: $python3 Server.py <host> <port>");
+if len(args) != 1:
+    print("Usage: $python3 Server.py <port>");
     sys.exit(1)
 
 try:
-    port = int(args[1])
+    port = int(args[0])
 except ValueError:
     print("PORT must be an integer number");
     sys.exit(1)
@@ -22,7 +22,7 @@ except ValueError:
 users = []
 rooms = {}
 
-address = (args[0],port)
+address = ("0.0.0.0",port)
 server = socket(AF_INET, SOCK_STREAM)
 server.bind(address)
 
@@ -64,7 +64,7 @@ def data_received(data, serving):
                     identify(incomingData[1], serving)
             elif eventReceived == "DISCONNECT":
                 if len(incomingData) != 1:
-                    print("Invalid USERS event")
+                    print("Invalid DISCONNECT event")
                     notifyInvalidMessage(MessageEvents.validList(), serving)
                 else:
                     disconnectUser(serving)
@@ -98,7 +98,7 @@ def data_received(data, serving):
                 elif eventReceived == "CREATEROOM":
                     print ("CREATEROOM EVENT RECEIVED");
                     if len(incomingData) != 2:
-                        print("Invalid USERS event")
+                        print("Invalid CREATEROOM event")
                         notifyInvalidMessage(MessageEvents.validList(), serving)
                     else:
                         createRoom(incomingData[1], serving)

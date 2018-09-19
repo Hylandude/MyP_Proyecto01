@@ -34,25 +34,34 @@ def validateMessage(message):
     except KeyError:
         print("Se ha recivido un mensaje invalido")
 
+def stablishConnection(host, port):
+    try:
+        client = socket(AF_INET, SOCK_STREAM)
+        client.connect((host,port))
+        successMessage = "Conectado en: "+str((host,port))
+        print(successMessage)
+        return (client, successMessage)
+    except ConnectionRefusedError:
+        print("No fue posible conectarse")
+        sys.exit(1)
+
+def validatePort(portString):
+    try:
+        port = int(portString)
+        return port
+    except ValueError:
+        print("PORT must be an integer number");
+        sys.exit(1)
+
 def main(args):
     #Get host and port from command line arguments
     if len(args) != 2:
         print("Usage: $python3 Client.py <host> <port>");
         sys.exit(1)
 
-    try:
-        port = int(args[1])
-    except ValueError:
-        print("PORT must be an integer number");
-        sys.exit(1)
+    port = validatePort(args[1])
 
-    try:
-        client = socket(AF_INET, SOCK_STREAM)
-        client.connect((args[0],port))
-        print("Conectado en: "+str((args[0],port)))
-    except ConnectionRefusedError:
-        print("No fue posible conectarse")
-        sys.exit(1)
+    client, message = stablishConnection(args[0], port)
 
     try:
         listenServer = Thread(target=data_received, args=(client,))
