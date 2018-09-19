@@ -9,13 +9,15 @@ buff = 1024
 
 def data_received(client):
     while True:
-        data = client.recv(buff).decode("utf-8")
-        validateMessage(data)
+        data = client.recv(buff).decode()
+        print(data)
+        #validateMessage(data)
 
 
 def send(data, transport):
     if data:
-        transport.send(data.encode("utf-8"))
+        data = (data+"\r\n")
+        transport.send(data.encode())
 
 def consoleInput(transport):
     while True:

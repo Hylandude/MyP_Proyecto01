@@ -9,12 +9,12 @@ from User import User
 from Room import Room
 
 args = sys.argv[1:]
-if len(args) != 1:
-    print("Usage: $python3 Server.py <port>");
+if len(args) != 2:
+    print("Usage: $python3 Server.py <host> <port>");
     sys.exit(1)
 
 try:
-    port = int(args[0])
+    port = int(args[1])
 except ValueError:
     print("PORT must be an integer number");
     sys.exit(1)
@@ -22,7 +22,7 @@ except ValueError:
 users = []
 rooms = {}
 
-address = ("127.0.0.1",port)
+address = (args[0],port)
 server = socket(AF_INET, SOCK_STREAM)
 server.bind(address)
 
@@ -49,10 +49,9 @@ def listenClient(transport):
 
 def data_received(data, serving):
     if data:
-        print(type(data))
-        data = data.decode("utf-8")
-        print(type(data))
+        data = data.decode()
         incomingString = data
+        incomingString = incomingString.replace("\r\n", "")
         incomingData = incomingString.split(" ")
         print("received: "+incomingString+" \nFrom: "+serving.name)
         eventReceived = incomingData[0]
@@ -130,14 +129,11 @@ def data_received(data, serving):
             print("Se recibio un mensaje invalido")
             notifyInvalidMessage(MessageEvents.validList(), serving)
 
-    else:
-        print("Se recibio un mensaje vacio")
-        notifyInvalidMessage("Mensaje vacio no permitido", serving)
 
 def messageMaker(message, author, event, room=""):
     if room != "":
         room = room+"-"
-    return (str(event)+room+author+": "+message).encode('utf8')
+    return (str(event)+room+author+": "+message+"\r\n").encode()
 
 def validateEvent(eventType):
     try:
@@ -147,7 +143,10 @@ def validateEvent(eventType):
 
 def sendToAll(message):
     for user in users:
-        user.transport.send(message)
+        try:
+            user.transport.send(message)
+        except:
+            disconnectUser(user)
 
 def findUser(searchedName):
     recepient = None
