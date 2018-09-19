@@ -4,38 +4,30 @@ import sys
 
 import Client
 
-def calculate(*args):
-    try:
-        value = float(feet.get())
-        meters.set((0.3048 * value * 10000.0 + 0.5)/10000.0)
-    except ValueError:
-        pass
+window = Tk()
 
-root = Tk()
-root.title("Feet to Meters")
+messages = Text(window)
+messages.grid(column=0, row=0)
 
-mainframe = ttk.Frame(root, padding="3 3 12 12")
-mainframe.grid(column=0, row=0, sticky=(N, W, E, S))
-mainframe.columnconfigure(0, weight=1)
-mainframe.rowconfigure(0, weight=1)
+input_user = StringVar()
+input_field = Entry(window, text=input_user, width=50)
+input_field.grid(column=0, row=1, sticky=E)
 
-feet = StringVar()
-meters = StringVar()
+chosen_event = StringVar()
+combo_box = ttk.Combobox(window, width = 15, textvariable = chosen_event, state="readonly")
+combo_box.grid(column=0, row=1, sticky=W)
+combo_box['values'] = ["text 1", "text 2", "text3"]
 
-feet_entry = ttk.Entry(mainframe, width=7, textvariable=feet)
-feet_entry.grid(column=2, row=1, sticky=(W, E))
+def Enter_pressed(event):
+    userMessage = input_field.get()
+    event = chosen_event.get()
+    fullMessage = event+" "+userMessage
+    messages.insert(INSERT, '%s\n' % fullMessage)
+    input_user.set('')
+    return "break"
 
-ttk.Label(mainframe, textvariable=meters).grid(column=2, row=2, sticky=(W, E))
-ttk.Button(mainframe, text="Calculate", command=calculate).grid(column=3, row=3, sticky=W)
+frame = Frame(window)
+input_field.bind("<Return>", Enter_pressed)
+frame.grid(column=0, row=0)
 
-ttk.Label(mainframe, text="feet").grid(column=3, row=1, sticky=W)
-ttk.Label(mainframe, text="is equivalent to").grid(column=1, row=2, sticky=E)
-ttk.Label(mainframe, text="meters").grid(column=3, row=2, sticky=W)
-
-for child in mainframe.winfo_children(): child.grid_configure(padx=5, pady=5)
-
-feet_entry.focus()
-root.bind('<Return>', calculate)
-root.mainloop()
-
-Client.main(sys.argv[1:])
+window.mainloop()
