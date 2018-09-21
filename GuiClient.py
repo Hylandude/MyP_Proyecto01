@@ -45,4 +45,11 @@ frame = Frame(window)
 input_field.bind("<Return>", Enter_pressed)
 frame.grid(column=0, row=0)
 
+def listenServer(transport):
+    while True:
+        data = transport.recv(1024).decode()
+        if(data):
+            messages.insert(INSERT, data)
+
+listen = Thread(target=listenServer, args=(transport,)).start()
 window.mainloop()

@@ -7,9 +7,9 @@ from threading import Thread
 
 buff = 1024
 
-def data_received(client):
+def data_received(transport):
     while True:
-        data = client.recv(buff).decode()
+        data = transport.recv(buff).decode()
         print(data)
         #validateMessage(data)
 
@@ -61,10 +61,10 @@ def main(args):
 
     port = validatePort(args[1])
 
-    client, message = stablishConnection(args[0], port)
+    transport, message = stablishConnection(args[0], port)
 
     try:
-        listenServer = Thread(target=data_received, args=(client,))
+        listenServer = Thread(target=data_received, args=(transport,))
         readInput = Thread(target=consoleInput, args=(client,))
         listenServer.start()
         readInput.start()
