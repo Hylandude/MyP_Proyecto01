@@ -29,23 +29,27 @@ server.bind(address)
 buff = 1024
 
 def acceptConnection():
-    try:
-        while True:
-            transport, clientAddress = server.accept()
-            print("Se recibio una conexion en: "+str(clientAddress))
-            Thread(target=listenClient, args=(transport,)).start()
-    except KeyboardInterrupt:
-        server.close()
+    while True:
+        transport, clientAddress = server.accept()
+        print("Se recibio una conexion en: "+str(clientAddress))
+        Thread(target=listenClient, args=(transport,)).start()
 
 def listenClient(transport):
     serving = User(transport)
     users.append(serving)
-    while True:
+    transportOpen = True;
+    while transportOpen:
         try:
             data = transport.recv(buff)
             data_received(data, serving)
         except OSError:
-            pass
+            print("No longer lisening to: "+serving.name)
+            transportOpen = False
+            serving.transport.close()
+            try:
+                users.remove(serving)
+            except ValueError:
+                return
 
 def data_received(data, serving):
     if data:
@@ -146,7 +150,7 @@ def sendToAll(message):
         try:
             user.transport.send(message)
         except:
-            disconnectUser(user)
+            continue
 
 def findUser(searchedName):
     recepient = None
@@ -289,17 +293,10 @@ def disconnectUser(serving):
     sendToAll(message)
 
 def main(args):
-        try:
-            server.listen()
-            print("Servidor corriendo en: "+str(address))
-            accept = Thread(target = acceptConnection)
-            accept.start()
-            accept.join()
-            server.close()
-        except KeyboardInterrupt:
-            print("caught interrupt")
-            server.close()
-            sys.exit(1)
+    server.listen()
+    print("Servidor corriendo en: "+str(address))
+    accept = Thread(target = acceptConnection)
+    accept.start()
 
 if __name__ == "__main__":
     main(sys.argv[1:])

@@ -13,7 +13,8 @@ def data_received(transport):
         print(data)
 
 def getDataFromSocket(transport):
-    data = transport.recv(buff).decode
+    data = transport.recv(buff).decode()
+    return data
 
 def send(data, transport):
     if data:
