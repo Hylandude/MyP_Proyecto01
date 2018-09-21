@@ -33,13 +33,17 @@ for event in MessageEvents:
 combo_box['values'] = comboValues
 
 def Enter_pressed(event):
-    userMessage = input_field.get()
-    event = chosen_event.get()
-    fullMessage = event+userMessage.strip()
-    messages.insert(INSERT, fullMessage+"\n")
-    Client.send(fullMessage, transport)
-    input_user.set('')
-    return "break"
+    try:
+        userMessage = input_field.get()
+        event = chosen_event.get()
+        fullMessage = (event+userMessage).strip()
+        messages.insert(INSERT, fullMessage+"\n")
+        Client.send(fullMessage, transport)
+        input_user.set('')
+        return "break"
+    except BrokenPipeError:
+        messages.insert(INSERT, "[ANUNCIO]: Has sido desconectado del servidor, reinicia para conectarte de nuevo\n")
+        input_user.set('')
 
 frame = Frame(window)
 input_field.bind("<Return>", Enter_pressed)

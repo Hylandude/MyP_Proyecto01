@@ -16,8 +16,10 @@ def data_received(transport):
 
 def send(data, transport):
     if data:
-        data = (data+"\r\n")
-        transport.send(data.encode())
+        print(data)
+        data = (data+"\r\n").encode()
+        print(data)
+        transport.send(data)
 
 def consoleInput(transport):
     while True:
