@@ -41,7 +41,7 @@ def Enter_pressed(event):
         Client.send(fullMessage, transport)
         input_user.set('')
         return "break"
-    except BrokenPipeError:
+    except OSError:
         messages.insert(INSERT, "[ANUNCIO]: Has sido desconectado del servidor, reinicia para conectarte de nuevo\n")
         input_user.set('')
 
@@ -50,10 +50,15 @@ input_field.bind("<Return>", Enter_pressed)
 frame.grid(column=0, row=0)
 
 def listenServer(transport):
-    while True:
-        data = transport.recv(1024).decode()
-        if(data):
+    listening = True;
+    while listening:
+        data = Client.getDataFromSocket(transport)
+        if(data != ""):
             messages.insert(INSERT, data)
+        else:
+            listening = False
+            transport.close()
 
-listen = Thread(target=listenServer, args=(transport,)).start()
+listen = Thread(target=listenServer, args=(transport,))
+listen.start()
 window.mainloop()

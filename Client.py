@@ -11,14 +11,13 @@ def data_received(transport):
     while True:
         data = transport.recv(buff).decode()
         print(data)
-        #validateMessage(data)
 
+def getDataFromSocket(transport):
+    data = transport.recv(buff).decode
 
 def send(data, transport):
     if data:
-        print(data)
         data = (data+"\r\n").encode()
-        print(data)
         transport.send(data)
 
 def consoleInput(transport):
@@ -38,11 +37,11 @@ def validateMessage(message):
 
 def stablishConnection(host, port):
     try:
-        client = socket(AF_INET, SOCK_STREAM)
-        client.connect((host,port))
+        transport = socket(AF_INET, SOCK_STREAM)
+        transport.connect((host,port))
         successMessage = "Conectado en: "+str((host,port))
         print(successMessage)
-        return (client, successMessage)
+        return (transport, successMessage)
     except ConnectionRefusedError:
         print("No fue posible conectarse")
         sys.exit(1)
@@ -67,7 +66,7 @@ def main(args):
 
     try:
         listenServer = Thread(target=data_received, args=(transport,))
-        readInput = Thread(target=consoleInput, args=(client,))
+        readInput = Thread(target=consoleInput, args=(transport,))
         listenServer.start()
         readInput.start()
     except KeyboardInterrupt:
