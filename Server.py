@@ -8,6 +8,10 @@ from UserStatus import UserStatus
 from User import User
 from Room import Room
 
+"""
+Server inicialization
+Reads port from command line and starts connection
+"""
 args = sys.argv[1:]
 if len(args) != 1:
     print("Usage: $python3 Server.py <port>");
@@ -28,12 +32,21 @@ server.bind(address)
 
 buff = 1024
 
+"""
+Function to accept all incoming connections.
+Launches a new thread for each incoming client
+"""
 def acceptConnection():
     while True:
         transport, clientAddress = server.accept()
         print("Se recibio una conexion en: "+str(clientAddress))
         Thread(target=listenClient, args=(transport,)).start()
 
+"""
+Function that handles incoming data from client
+receives the socket that stablished the connection
+Creates User object and receives the data from the socket
+"""
 def listenClient(transport):
     serving = User(transport)
     users.append(serving)
@@ -51,6 +64,11 @@ def listenClient(transport):
             except ValueError:
                 return
 
+"""
+Function that handles incoming MessageEvents
+Receives the incoming data as bytes and the user who triggered the event
+Uses nested elif to emulate a switch statement
+"""
 def data_received(data, serving):
     if data:
         data = data.decode()
@@ -133,18 +151,30 @@ def data_received(data, serving):
             print("Se recibio un mensaje invalido")
             notifyInvalidMessage(MessageEvents.validList(), serving)
 
-
+"""
+Function that creates a message string for the client to receive
+Return the bytes representation of the message string
+"""
 def messageMaker(message, author, event, room=""):
     if room != "":
         room = room+"-"
     return (str(event)+room+author+": "+message+"\r\n").encode()
 
+"""
+Function that validates if the event received is valid
+Receives the event type as a string
+Returns true if the event is valid else returns false
+"""
 def validateEvent(eventType):
     try:
         return eventType+" " == str(MessageEvents[eventType])
     except KeyError:
         return False
 
+"""
+Function that sends a message to all connected users
+Receives the message to be sent as bytes
+"""
 def sendToAll(message):
     for user in users:
         try:
@@ -152,6 +182,11 @@ def sendToAll(message):
         except:
             continue
 
+"""
+Function to search for an user in the connected users list
+Receives the name of the searched user as a string
+Returns the User object if found, None if not found
+"""
 def findUser(searchedName):
     recepient = None
     for user in users:
@@ -159,11 +194,19 @@ def findUser(searchedName):
             recepient = user
     return recepient
 
+"""
+Function that returns a message notifying the user the event sent is invalid
+Receives the message to be sent as a string and the User object who triggered the event
+"""
 def notifyInvalidMessage(notice, serving):
     msg = messageMaker(notice, "[Servidor]", MessageEvents.MESSAGE)
     serving.invalidCount += 1
     serving.transport.send(msg)
 
+"""
+Function that handles the IDENTIFY event
+Receives the name the user is requesting and the User object who triggered the event
+"""
 def identify(name, serving):
     if serving.name == "":
         sameNameUser = findUser(name)
@@ -181,6 +224,10 @@ def identify(name, serving):
         msg = messageMaker("Ya estas identificado, no es posible cambiar tu nombre", "[Servidor]", MessageEvents.MESSAGE)
         serving.transport.send(msg)
 
+"""
+Function that handles the STATUS event
+Receives the status selected and the User object who triggered the event
+"""
 def status(statusSelected, serving):
     try:
         serving.setStatus(UserStatus[statusSelected.upper()])
@@ -188,6 +235,10 @@ def status(statusSelected, serving):
         print("Received invalid status on event")
         notifyInvalidMessage("Status invalido. Debe ser 'ACTIVE', 'AWAY' o 'BUSY'", serving)
 
+"""
+Function that handles the USERS event
+Receives the User object who triggered the event
+"""
 def sendUserList(serving):
     userString = ""
     for user in users:
@@ -197,6 +248,10 @@ def sendUserList(serving):
     msg = messageMaker(userString, "[Servidor]", MessageEvents.MESSAGE)
     serving.transport.send(msg)
 
+"""
+Function that handles the MESSAGE event
+Receives the name of the recepient, the whole string that the user sent and the User object who triggered the event
+"""
 def personalMessage(recepientName, entireString, serving):
     recepient = findUser(recepientName)
     if(recepient is None):
@@ -207,6 +262,11 @@ def personalMessage(recepientName, entireString, serving):
         msg = messageMaker(message, serving.name, MessageEvents.MESSAGE)
         recepient.transport.send(msg)
 
+"""
+Function that validates if a room name is unique
+Receives the room name to check as a string
+Returns true if the room name is unique else returns false
+"""
 def checkUniqueRoom(roomName):
     try:
         testRoom = rooms[roomName]
@@ -214,6 +274,10 @@ def checkUniqueRoom(roomName):
     except KeyError:
         return True
 
+"""
+Function that handles the CREATEROOM event
+Receives the room name a string and the User object who triggered the event
+"""
 def createRoom(roomName, serving):
     if checkUniqueRoom(roomName):
         room = Room(roomName, serving)
@@ -225,6 +289,10 @@ def createRoom(roomName, serving):
         msg = messageMaker("Ya existe una habitacion con ese nombre, usa uno distinto", "[Servidor]", MessageEvents.MESSAGE)
         serving.transport.send(msg)
 
+"""
+Function that handles the INVITE event
+Receives the room name, the whole string the user sent and the User object who triggered the event
+"""
 def invite(roomName, entireString, serving):
     try:
         room = rooms[roomName]
@@ -251,6 +319,10 @@ def invite(roomName, entireString, serving):
     except KeyError:
         notifyInvalidMessage("La habitacion "+roomName+" no existe", serving)
 
+"""
+Function that handles the JOINROOM event
+Receives the room name and the User object who triggered the event
+"""
 def joinRoom(roomName, serving):
     try:
         room = rooms[roomName]
@@ -270,6 +342,10 @@ def joinRoom(roomName, serving):
     except KeyError:
         notifyInvalidMessage("No existe una sala con el nombre: "+roomName, serving)
 
+"""
+Function that handles the ROOMESSAGE event
+receives the room name, the whole string the user sent and the User object who triggered the event
+"""
 def roomMessage(roomName, entireString, serving):
     try:
         room = rooms[roomName]
@@ -284,6 +360,10 @@ def roomMessage(roomName, entireString, serving):
     except KeyError:
         notifyInvalidMessage("La habitacion "+roomName+" no existe", serving)
 
+"""
+Function that handles the DISCONNECT event
+Receives the user who triggered the event
+"""
 def disconnectUser(serving):
     serving.transport.close()
     users.remove(serving)
@@ -292,6 +372,9 @@ def disconnectUser(serving):
     print(msg)
     sendToAll(message)
 
+"""
+Main method for the Server, launches the thread to accept incoming connections
+"""
 def main(args):
     server.listen()
     print("Servidor corriendo en: "+str(address))

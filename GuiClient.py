@@ -7,6 +7,10 @@ from threading import Thread
 
 args = sys.argv[1:]
 
+"""
+Receives the host and port from command line
+Then calls the Client to obtain the transport socket
+"""
 if len(args) != 2:
     print("Usage: $python3 Client.py <host> <port>");
     sys.exit(1)
@@ -14,6 +18,10 @@ if len(args) != 2:
 port = Client.validatePort(args[1])
 transport, message = Client.stablishConnection(args[0], port)
 
+
+"""
+Defines the user interface
+"""
 window = Tk()
 
 messages = Text(window)
@@ -32,6 +40,9 @@ for event in MessageEvents:
     comboValues.append(str(event))
 combo_box['values'] = comboValues
 
+"""
+Function that handles the event when the 'Enter' key is pressed
+"""
 def Enter_pressed(event):
     try:
         userMessage = input_field.get()
@@ -49,6 +60,9 @@ frame = Frame(window)
 input_field.bind("<Return>", Enter_pressed)
 frame.grid(column=0, row=0)
 
+"""
+Function that listens to the server
+"""
 def listenServer(transport):
     listening = True;
     while listening:

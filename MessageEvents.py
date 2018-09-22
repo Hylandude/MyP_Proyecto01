@@ -1,5 +1,8 @@
 from enum import Enum
 
+"""
+Enumeration that represents the events that the server can receive
+"""
 class MessageEvents(Enum):
     IDENTIFY = 1
     STATUS = 2
@@ -12,6 +15,9 @@ class MessageEvents(Enum):
     ROOMESSAGE = 9
     DISCONNECT = 10
 
+    """
+    To String method
+    """
     def __str__(self):
         return{
             'IDENTIFY': "IDENTIFY ",
@@ -26,6 +32,9 @@ class MessageEvents(Enum):
             'DISCONNECT': "DISCONNECT "
         }[self.name]
 
+    """
+    Returns a message with the correct syntax for all events
+    """
     def validList():
         stringMessage = '''Sintaxis invalida, la sintaxis de los mensajes es:\n
                         \t IDENTIFY nuevoNombre\n
