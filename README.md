@@ -1,5 +1,5 @@
 # Proyecto 01 Modelado y Programacion
-> Chat utilizando sockets
+> Cesar Augusto Farrera Ortega - 311617670
 
 Proyecto 01 Un chat simple con interfaz grafica que utiliza sockets para manejar la comunicacion servidor-cliente
 
@@ -46,7 +46,7 @@ Esta es una lista de funcionalidad extra agregada al protocolo, no afecta la fun
 * El servidor avisa a todos los usuarios cuando alguien se conecta o desconecta
 * Los mensajes del servidor vienen prefijos con el usuario "[Servidor]"
 
-#### Guia de uso
+## Guia de uso
 
 Una vez iniciado el servidor y despues concatado el cliente unicamente es necesario seleccionar el evento del combo box
 ubicado en la esquina inferior izquierda para seleccionar el evento y escribir el mensaje a enviar. Despues presionar
